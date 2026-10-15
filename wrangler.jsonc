@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mjavmjav",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-10-15",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+  "routes": [
+    { "pattern": "mjavmjav.com", "custom_domain": true },
+    { "pattern": "www.mjavmjav.com", "custom_domain": true }
+  ]
+}

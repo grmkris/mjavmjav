@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content" />
+    <meta name="theme-color" content="#171229" />
+    <meta name="description" content="Mjav mjav. A scientifically unserious cat soundboard." />
+    <title>mjav mjav — cat internet</title>
+    <link rel="icon" href="/cat.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="noise" aria-hidden="true"></div>
+    <header class="topbar">
+      <a class="wordmark" href="/" aria-label="mjav mjav home"><span>mjav</span><span>mjav</span><i aria-hidden="true">✶</i></a>
+      <div class="topbar-actions">
+        <span class="live-dot"><span aria-hidden="true"></span> live from the cat dimension</span>
+        <button class="icon-button" id="mute-button" type="button" aria-pressed="false" aria-label="Sound on">◖)))</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow"><span>site of the day</span> / probably</p>
+          <h1 id="hero-title">The internet's<br /><em>loudest</em> cat.</h1>
+          <p class="lede">No thoughts. Just <strong>mjav</strong>. Tap the cat or pick a noise and let the tiny beast have the aux.</p>
+          <div class="hero-stamp" aria-label="Cat facts">
+            <span>100% cat</span><span>0% plan</span><span>∞ confidence</span>
+          </div>
+        </div>
+
+        <div class="cat-stage" id="cat-stage">
+          <div class="orbit orbit-one" aria-hidden="true"></div>
+          <div class="orbit orbit-two" aria-hidden="true"></div>
+          <button class="cat-button" id="cat-button" type="button" aria-label="Make the cat say mjav">
+            <span class="cat-shadow" aria-hidden="true"></span>
+            <svg class="cat" viewBox="0 0 360 390" role="img" aria-label="A silly cream-colored cat with big eyes and its tongue out">
+              <path class="tail" d="M284 286c49 25 62-26 36-49-19-17-43-4-35 14 6 15 26 11 28-2" />
+              <path class="body" d="M73 181c0-61 43-106 107-106s107 45 107 106v95c0 53-44 76-107 76S73 329 73 276Z" />
+              <path class="ear ear-left" d="M89 105 73 21c-2-11 10-18 19-11l68 57Z" />
+              <path class="ear ear-right" d="m271 105 16-84c2-11-10-18-19-11l-68 57Z" />
+              <path class="ear-inner" d="m89 67-6-28 43 34Z" />
+              <path class="ear-inner" d="m271 67 6-28-43 34Z" />
+              <ellipse class="eye-socket" cx="125" cy="170" rx="37" ry="47" />
+              <ellipse class="eye-socket" cx="235" cy="170" rx="37" ry="47" />
+              <ellipse class="eye" cx="129" cy="177" rx="13" ry="26" />
+              <ellipse class="eye" cx="229" cy="177" rx="13" ry="26" />
+              <circle class="glint" cx="134" cy="165" r="5" /><circle class="glint" cx="234" cy="165" r="5" />
+              <path class="brow" d="M99 119c18-15 38-14 54-2M207 117c17-12 38-12 54 2" />
+              <path class="muzzle" d="M133 234c8-14 24-16 47-2 23-14 39-12 47 2-2 29-21 42-47 42s-45-13-47-42Z" />
+              <path class="nose" d="m170 236 10-7 10 7-10 10Z" />
+              <path class="mouth" d="M180 246v17m0 0c-15 12-27 5-30-4m30 4c15 12 27 5 30-4" />
+              <path class="tongue" d="M169 263c1 28 20 35 23 0Z" />
+              <path class="whisker" d="M128 239 51 222m79 35-83 5m214-43 77-17m-80 52 83 5" />
+              <path class="paw" d="M91 291c-25 5-26 42-2 46 18 3 27-10 25-28" /><path class="paw" d="M269 291c25 5 26 42 2 46-18 3-27-10-25-28" />
+            </svg>
+            <span class="tap-me">tap me</span>
+          </button>
+          <span class="stage-note note-top" aria-hidden="true">certified yapper</span>
+          <span class="stage-note note-bottom" aria-hidden="true">head empty ♡</span>
+        </div>
+      </section>
+
+      <section class="soundboard" aria-labelledby="soundboard-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow"><span>the control room</span> / buttons go brrr</p>
+            <h2 id="soundboard-title">Choose your <span>weapon.</span></h2>
+          </div>
+          <p class="shortcut-hint">Keys <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> work too.</p>
+        </div>
+        <div class="sound-grid" role="group" aria-label="Cat sounds">
+          <button class="sound-card sound-mjav" data-sound="mjav" type="button"><span class="sound-number">01</span><span class="sound-face">:3</span><span class="sound-name">mjav</span><span class="sound-caption">the classic</span><span class="play-mark" aria-hidden="true">↗</span></button>
+          <button class="sound-card sound-prrr" data-sound="prrr" type="button"><span class="sound-number">02</span><span class="sound-face">≋</span><span class="sound-name">prrrrt</span><span class="sound-caption">motor mode</span><span class="play-mark" aria-hidden="true">↗</span></button>
+          <button class="sound-card sound-blep" data-sound="blep" type="button"><span class="sound-number">03</span><span class="sound-face">:P</span><span class="sound-name">blep</span><span class="sound-caption">no thoughts</span><span class="play-mark" aria-hidden="true">↗</span></button>
+          <button class="sound-card sound-yap" data-sound="yap" type="button"><span class="sound-number">04</span><span class="sound-face">!!!</span><span class="sound-name">YAP YAP</span><span class="sound-caption">emergency beans</span><span class="play-mark" aria-hidden="true">↗</span></button>
+        </div>
+        <div class="board-footer">
+          <p><span class="status-light" aria-hidden="true"></span><span id="status-text" aria-live="polite">the cat is waiting...</span></p>
+          <button id="chaos-button" class="chaos-button" type="button" aria-pressed="false"><span aria-hidden="true">✹</span> unleash chaos</button>
+        </div>
+      </section>
+
+      <section class="manifesto" aria-label="Cat manifesto">
+        <div class="manifesto-big">mjav<br />mjav<br /><span>mjav.</span></div>
+        <div class="manifesto-copy"><p class="eyebrow"><span>important research</span> / source: trust me</p><p>This cat has never paid rent, answered an email, or experienced a normal thought. Yet somehow? <strong>iconic.</strong></p><p class="tiny-note">Sound is made in your browser. No cats were consulted. One cat was lightly inconvenienced.</p></div>
+      </section>
+    </main>
+
+    <footer class="footer"><span>mjavmjav.com</span><span>made with ears &amp; poor judgement</span><span>© 2026 the cat</span></footer>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

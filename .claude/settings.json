@@ -1,0 +1,11 @@
+{
+  "allowedMcpServers": [
+    {
+      "serverUrl": "https://mysi.lol/mcp"
+    },
+    {
+      "serverUrl": "https://mcp.cloudflare.com/mcp"
+    }
+  ],
+  "disableClaudeAiConnectors": true
+}

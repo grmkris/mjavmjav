@@ -1,0 +1,19 @@
+{
+  "name": "mjavmjav",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Mjav mjav: a browser-based cat soundboard for mjavmjav.com.",
+  "license": "MIT",
+  "scripts": {
+    "check": "bun run check:html && bun run check:js && bun run check:config",
+    "check:html": "bun -e \"const s=await Bun.file('public/index.html').text(); if(!s.includes('<main')||!s.includes('soundboard')) throw new Error('index.html checks failed')\"",
+    "check:js": "bun -e \"const s=await Bun.file('public/app.js').text(); if(!s.includes('AudioContext')||!s.includes('prefers-reduced-motion')) throw new Error('app.js checks failed')\"",
+    "check:config": "bun -e \"const c=await Bun.file('wrangler.jsonc').text(); if(!c.includes('mjavmjav')) throw new Error('wrangler config checks failed')\"",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.15.0"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "mcpServers": {
+    "mysi": { "type": "http", "url": "https://mysi.lol/mcp" },
+    "cloudflare": { "type": "http", "url": "https://mcp.cloudflare.com/mcp" }
+  }
+}
