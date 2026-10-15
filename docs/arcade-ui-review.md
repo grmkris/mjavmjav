@@ -101,3 +101,17 @@ Physical iPhone/Android behavior, Safari rendering, cross-continent latency and
 **Verdict: Approve within the reviewed Chromium scope.** No actionable UI findings
 remain. The hardware, Safari, latency, load and slowed mascot-animation checks
 listed above remain unverified.
+
+## Deployment receipt
+
+- Feature source: `b0bf991` (preceded by physics commit `1701b63`), pushed to `main`.
+- `bun run deploy`: succeeded for Worker `mjavmjav`, both custom domains,
+  version `27212edc-3e52-49f2-ab12-2825575b12f1`.
+- Direct public fetches of `/` and `/game-core.js` on `mjavmjav.com` and
+  `www.mjavmjav.com`: HTTP 200; new heading, one-tap action, Honk Dodge and
+  physics version 2 present.
+- `SITE_URL=https://mjavmjav.com PLAYWRIGHT_EXECUTABLE_PATH=/home/kristjan/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome heavy bun run test --output test-results/live`:
+  **22 passed, 8 intentionally skipped, 0 failed**. Shared audio/echo and lobby
+  checks crossed the apex and www domains. Race sequencing, capacity,
+  queue-cancellation and spam tests ran locally only to avoid taking over the
+  live global room.
