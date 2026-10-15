@@ -16,6 +16,7 @@
     <header class="topbar">
       <a class="wordmark" href="/" aria-label="mjav mjav home"><span>mjav</span><span>mjav</span><i aria-hidden="true">✶</i></a>
       <div class="topbar-actions">
+        <a class="arcade-link" href="#arcade">cat arcade <span aria-hidden="true">↙</span></a>
         <span class="live-dot"><span aria-hidden="true"></span> live from the cat dimension</span>
         <button class="icon-button" id="mute-button" type="button" aria-pressed="false" aria-label="Mute sound"><span aria-hidden="true">◖)))</span> <span class="sound-label">sound on</span></button>
       </div>
@@ -64,19 +65,53 @@
         </div>
       </section>
 
+      <section class="arcade" id="arcade" aria-labelledby="arcade-title">
+        <div class="section-heading">
+          <div><p class="eyebrow"><span>the cat arcade</span> / zero transferable skills</p><h2 id="arcade-title">skill issue simulator.</h2></div>
+          <p class="arcade-intro">Two games. Eight cats. One shared brain cell.</p>
+        </div>
+        <div class="game-tabs" role="group" aria-label="Choose a game">
+          <button type="button" data-game="flappy" aria-pressed="true">Flappy Mjav <span>cat vs. cucumber</span></button>
+          <button type="button" data-game="jump" aria-pressed="false">Boing Boing <span>gravity is a hater</span></button>
+        </div>
+        <div class="arcade-layout">
+          <div class="game-machine">
+            <div class="game-hud"><span id="game-state">solo cat</span><span>score <strong id="current-score">0</strong></span><span>best <strong id="best-score">0</strong></span></div>
+            <div class="game-viewport">
+              <canvas id="game-canvas" width="420" height="560" tabindex="0" aria-label="Cat arcade game. Flap with Space, or steer with the arrow keys. Touch controls are below.">Your browser needs canvas to play these games.</canvas>
+              <div class="game-overlay" id="game-overlay"><h3 id="game-title">Flappy Mjav</h3><p id="game-instructions">Tap or press Space to flap. Avoid the cucumbers.</p><button class="arcade-primary" type="button" id="solo-start">play solo</button></div>
+            </div>
+            <div class="game-controls"><button type="button" id="flap-control">flap! <kbd>Space</kbd></button><div id="steer-controls" hidden><button type="button" id="steer-left" aria-label="Steer left">← left</button><button type="button" id="steer-right" aria-label="Steer right">right →</button></div><button type="button" id="pause-game">pause</button></div>
+            <p class="game-help" id="game-help">Tap or press Space to flap. Avoid the cucumbers.</p>
+          </div>
+          <aside class="room-panel" aria-labelledby="room-title">
+            <span class="room-spark" aria-hidden="true">✹</span><h3 id="room-title">bring the other<br />brain cells.</h3><p>Make a room. Share the link. Race up to eight cats on the same course.</p>
+            <div id="room-connect"><button class="arcade-primary" type="button" id="create-room">make a room</button><form id="join-form"><label for="join-code">Already have a code?</label><div class="join-row"><input id="join-code" name="room" placeholder="8-letter code" maxlength="8" minlength="8" pattern="[a-zA-Z0-9]{8}" required autocomplete="off" autocapitalize="none" spellcheck="false" /><button type="submit" id="join-room">join room</button></div></form></div>
+            <div id="room-connected" hidden><div class="room-details"><strong id="room-code"></strong><span id="room-count"></span></div><label class="invite-label" for="invite-link">Your room link</label><input id="invite-link" readonly /><button type="button" id="copy-invite">copy invite link</button><ul class="room-roster" id="room-roster" aria-label="Cats in this room"></ul><button class="arcade-primary" type="button" id="room-start">start group round</button><label class="room-audio-label"><input type="checkbox" id="room-audio" /> hear the other cats</label><button type="button" id="room-leave">leave room</button></div>
+            <p class="room-status" id="room-status" role="status">No account. Just vibes. Rooms take a nap after one hour.</p><p class="room-reaction" id="room-reaction" aria-live="polite"></p>
+          </aside>
+        </div>
+      </section>
+
       <section class="soundboard" aria-labelledby="soundboard-title">
         <div class="section-heading">
           <div>
             <p class="eyebrow"><span>the control room</span> / buttons go brrr</p>
             <h2 id="soundboard-title">press for nonsense.</h2>
           </div>
-          <p class="shortcut-hint">Keys <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> work too.</p>
+          <p class="shortcut-hint">Keys <kbd>1</kbd>–<kbd>9</kbd> and <kbd>0</kbd> work too.</p>
         </div>
         <div class="sound-grid" role="group" aria-label="Cat sounds">
           <button class="sound-card sound-mjav" data-sound="mjav" type="button"><span class="sound-number">01</span><span class="sound-face">:3</span><span class="sound-name">mjav</span><span class="sound-caption">the classic</span><span class="play-mark" aria-hidden="true">↗</span></button>
           <button class="sound-card sound-prrr" data-sound="prrr" type="button"><span class="sound-number">02</span><span class="sound-face">≋</span><span class="sound-name">prrrrt</span><span class="sound-caption">motor mode</span><span class="play-mark" aria-hidden="true">↗</span></button>
           <button class="sound-card sound-blep" data-sound="blep" type="button"><span class="sound-number">03</span><span class="sound-face">:P</span><span class="sound-name">blep</span><span class="sound-caption">no thoughts</span><span class="play-mark" aria-hidden="true">↗</span></button>
           <button class="sound-card sound-yap" data-sound="yap" type="button"><span class="sound-number">04</span><span class="sound-face">!!!</span><span class="sound-name">YAP YAP</span><span class="sound-caption">emergency beans</span><span class="play-mark" aria-hidden="true">↗</span></button>
+          <button class="sound-card" data-sound="eepy" type="button"><span class="sound-number">05</span><span class="sound-face">zz</span><span class="sound-name">eepy</span><span class="sound-caption">bedtime malfunction</span><span class="play-mark" aria-hidden="true">↗</span></button>
+          <button class="sound-card" data-sound="ufo" type="button"><span class="sound-number">06</span><span class="sound-face">⊙</span><span class="sound-name">space cat</span><span class="sound-caption">beam me up</span><span class="play-mark" aria-hidden="true">↗</span></button>
+          <button class="sound-card" data-sound="honk" type="button"><span class="sound-number">07</span><span class="sound-face">!?</span><span class="sound-name">honk</span><span class="sound-caption">wrong animal</span><span class="play-mark" aria-hidden="true">↗</span></button>
+          <button class="sound-card" data-sound="bonk" type="button"><span class="sound-number">08</span><span class="sound-face">×</span><span class="sound-name">bonk</span><span class="sound-caption">brain cell lost</span><span class="play-mark" aria-hidden="true">↗</span></button>
+          <button class="sound-card" data-sound="boing" type="button"><span class="sound-number">09</span><span class="sound-face">⌁</span><span class="sound-name">boing</span><span class="sound-caption">physics optional</span><span class="play-mark" aria-hidden="true">↗</span></button>
+          <button class="sound-card" data-sound="ascend" type="button"><span class="sound-number">10</span><span class="sound-face">✧</span><span class="sound-name">ascend</span><span class="sound-caption">returned to orbit</span><span class="play-mark" aria-hidden="true">↗</span></button>
         </div>
         <div class="board-footer">
           <p><span class="status-light" aria-hidden="true"></span><span id="status-text" aria-live="polite">the cat is waiting...</span></p>
@@ -86,11 +121,12 @@
 
       <section class="manifesto" aria-label="Cat manifesto">
         <div class="manifesto-big">mjav<br />mjav<br /><span>mjav.</span></div>
-        <div class="manifesto-copy"><p class="eyebrow"><span>important research</span> / source: trust me</p><p>This cat has never paid rent, answered an email, or experienced a normal thought. Yet somehow? <strong>iconic.</strong></p><p class="tiny-note">One real meow. Three very questionable noises. No cats were employed in the making of this website.</p></div>
+        <div class="manifesto-copy"><p class="eyebrow"><span>important research</span> / source: trust me</p><p>This cat has never paid rent, answered an email, or experienced a normal thought. Yet somehow? <strong>iconic.</strong></p><p class="tiny-note">One real meow. Nine very questionable noises. Two career-ending games. No cats were employed in the making of this website.</p></div>
       </section>
     </main>
 
     <footer class="footer"><span>mjavmjav.com</span><span>made with ears &amp; poor judgement</span><span>© 2026 the cat</span></footer>
     <script type="module" src="/app.js"></script>
+    <script type="module" src="/arcade.js"></script>
   </body>
 </html>

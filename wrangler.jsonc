@@ -6,10 +6,43 @@
   "compatibility_date": "2026-10-15",
   "assets": {
     "directory": "./public",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/api/*"
+    ]
   },
   "routes": [
-    { "pattern": "mjavmjav.com", "custom_domain": true },
-    { "pattern": "www.mjavmjav.com", "custom_domain": true }
-  ]
+    {
+      "pattern": "mjavmjav.com",
+      "custom_domain": true
+    },
+    {
+      "pattern": "www.mjavmjav.com",
+      "custom_domain": true
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "CAT_ROOMS",
+        "class_name": "CatRoom"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1-cat-rooms",
+      "new_sqlite_classes": [
+        "CatRoom"
+      ]
+    }
+  ],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 0.1,
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.1
+    }
+  }
 }

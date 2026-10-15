@@ -5,7 +5,10 @@ const muteButton = document.querySelector('#mute-button');
 const chaosButton = document.querySelector('#chaos-button');
 const statusText = document.querySelector('#status-text');
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-const soundNames = { mjav: 'mjav', prrr: 'prrrrt', blep: 'blep', yap: 'YAP YAP' };
+const soundNames = {
+  mjav: 'mjav', prrr: 'prrrrt', blep: 'blep', yap: 'YAP YAP', eepy: 'eepy',
+  ufo: 'space cat', honk: 'honk', bonk: 'bonk', boing: 'boing', ascend: 'ascend',
+};
 const realMeow = new Audio('/meow.wav');
 realMeow.preload = 'auto';
 realMeow.volume = 0.55;
@@ -79,9 +82,33 @@ function synthSound(kind) {
   if (kind === 'yap') {
     [0, 0.12, 0.24].forEach((start) => tone(context, { frequency: 720, end: 280, type: 'square', duration: 0.11, start, volume: 0.11 }));
   }
+  if (kind === 'eepy') {
+    tone(context, { frequency: 240, end: 110, type: 'sine', duration: 0.75, volume: 0.1 });
+    tone(context, { frequency: 330, end: 150, type: 'triangle', duration: 0.55, start: 0.08, volume: 0.06 });
+  }
+  if (kind === 'ufo') {
+    tone(context, { frequency: 180, end: 920, type: 'sine', duration: 0.55, volume: 0.1 });
+    tone(context, { frequency: 920, end: 180, type: 'sine', duration: 0.55, start: 0.2, volume: 0.08 });
+  }
+  if (kind === 'honk') {
+    tone(context, { frequency: 180, end: 130, type: 'square', duration: 0.16, volume: 0.16 });
+    tone(context, { frequency: 150, end: 110, type: 'square', duration: 0.2, start: 0.16, volume: 0.14 });
+  }
+  if (kind === 'bonk') {
+    tone(context, { frequency: 180, end: 58, type: 'triangle', duration: 0.28, volume: 0.18 });
+  }
+  if (kind === 'boing') {
+    tone(context, { frequency: 180, end: 740, type: 'sine', duration: 0.28, volume: 0.14 });
+    tone(context, { frequency: 460, end: 180, type: 'triangle', duration: 0.24, start: 0.08, volume: 0.09 });
+  }
+  if (kind === 'ascend') {
+    [0, 0.1, 0.2, 0.3].forEach((start, index) => tone(context, {
+      frequency: 260 + index * 120, end: 720 + index * 120, type: 'triangle', duration: 0.3, start, volume: 0.08,
+    }));
+  }
 }
 
-function playSound(kind) {
+function playSound(kind, announce = true) {
   if (!muted) {
     if (kind === 'mjav') {
       realMeow.currentTime = 0;
@@ -95,6 +122,7 @@ function playSound(kind) {
   totalSounds += 1;
   statusText.textContent = `${soundNames[kind]} · ${totalSounds} noise${totalSounds === 1 ? '' : 's'} this visit${muted ? ' (muted)' : ''}`;
   catStage.dataset.sound = kind;
+  if (announce) window.dispatchEvent(new CustomEvent('cat:reaction', { detail: { kind } }));
   window.clearTimeout(stageTimer);
   stageTimer = window.setTimeout(() => delete catStage.dataset.sound, reduceMotion.matches ? 80 : 400);
 }
@@ -155,7 +183,7 @@ document.addEventListener('keydown', (event) => {
     return;
   }
   if (event.repeat || event.altKey || event.ctrlKey || event.metaKey || event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
-  const index = ['1', '2', '3', '4'].indexOf(event.key);
+  const index = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].indexOf(event.key);
   if (index >= 0) {
     event.preventDefault();
     press(buttons[index].dataset.sound, buttons[index]);
@@ -169,3 +197,8 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 window.addEventListener('pagehide', () => { stopChaos(); stopVoices(); });
+
+window.addEventListener('cat:game-sound', (event) => {
+  const kind = event.detail?.kind;
+  if (soundNames[kind] && !document.hidden) playSound(kind, false);
+});

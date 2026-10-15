@@ -19,7 +19,7 @@
 * { box-sizing: border-box; }
 html { background: var(--ink); scrollbar-gutter: stable; }
 body { margin: 0; min-block-size: 100svh; overflow-x: clip; background: var(--ink); color: var(--paper); -webkit-font-smoothing: antialiased; }
-button, a { -webkit-tap-highlight-color: transparent; }
+button, a { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 button { color: inherit; font: inherit; cursor: pointer; }
 button:focus-visible, a:focus-visible { outline: 3px solid var(--acid); outline-offset: 5px; }
 .noise { position: fixed; inset: 0; z-index: 20; pointer-events: none; opacity: .045; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.8'/%3E%3C/svg%3E"); }
@@ -150,4 +150,86 @@ kbd { padding: .25rem .35rem; border: 1px solid color-mix(in oklch, var(--paper)
   .manifesto { grid-template-columns: 1fr; gap: 2.5rem; }
   .manifesto-big { font-size: clamp(4rem, 24vw, 8rem); }
   .footer { gap: .4rem; }
+}
+
+[hidden] { display: none !important; }
+.arcade-link { display: inline-flex; min-block-size: 44px; align-items: center; gap: .5rem; font-size: .85rem; font-weight: 800; text-decoration: none; color: var(--acid); }
+.arcade-link:active { opacity: .7; }
+.arcade { max-inline-size: 90rem; margin-inline: auto; padding: clamp(3rem, 6vw, 6rem) clamp(1.25rem, 6vw, 7rem); scroll-margin-block-start: 1rem; border-block-start: 1px solid color-mix(in oklch, var(--paper), transparent 84%); }
+.arcade-intro, .game-help, .room-status, .room-reaction { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); font-size: .75rem; line-height: 1.6; }
+.arcade-intro { max-inline-size: 23ch; margin: 0; }
+.arcade-layout { display: grid; grid-template-columns: minmax(0, 28rem) minmax(16rem, 1fr); gap: clamp(1.2rem, 4vw, 4rem); align-items: start; }
+.game-tabs { display: flex; gap: .6rem; margin-block-end: 1rem; }
+.game-tabs button { min-block-size: 4rem; flex: 1; border: 1px solid color-mix(in oklch, var(--paper), transparent 70%); border-radius: .8rem; background: transparent; padding: .8rem 1.1rem; text-align: start; font-size: 1.2rem; font-weight: 800; }
+.game-tabs button span { display: block; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .65rem; font-weight: 400; margin-block-start: .2rem; }
+.game-tabs button[aria-pressed="true"] { border-color: var(--acid); color: var(--ink); background: var(--acid); }
+.game-tabs button[aria-pressed="true"] span { color: var(--ink); }
+.game-machine { min-inline-size: 0; padding: .7rem; border-radius: 1.3rem; background: var(--purple); border: 1px solid color-mix(in oklch, var(--paper), transparent 80%); }
+.game-hud { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem; padding: .5rem .25rem 1rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); font-size: .7rem; }
+.game-hud strong { color: var(--acid); font-variant-numeric: tabular-nums; font-size: 1rem; }
+.game-viewport { position: relative; border-radius: .6rem; overflow: clip; inline-size: 100%; aspect-ratio: 3/4; background: var(--violet); }
+#game-canvas { display: block; inline-size: 100%; block-size: 100%; touch-action: pan-y; }
+#game-canvas:focus-visible { outline-offset: -5px; outline-color: var(--ink); }
+.game-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: clamp(1rem, 3vw, 3rem); background: oklch(.19 .055 295 / .87); text-align: center; }
+.game-overlay h3 { margin: 0 0 1rem; font-size: clamp(2rem, 4vw, 3.75rem); font-weight: 800; letter-spacing: -.06em; line-height: .95; text-wrap: balance; color: var(--acid); }
+.game-overlay p { max-inline-size: 29ch; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .8rem; line-height: 1.6; color: var(--paper); }
+.arcade button:not([data-game]) { min-block-size: 44px; border: 1px solid color-mix(in oklch, var(--paper), transparent 65%); border-radius: .5rem; padding: .7rem 1rem; color: var(--paper); background: transparent; font-size: .88rem; font-weight: 700; }
+.arcade button.arcade-primary { color: var(--ink); background: var(--acid); border-color: var(--acid); }
+.arcade button:active { transform: scale(.96); }
+.arcade button:disabled { opacity: .45; cursor: default; }
+.game-controls { display: flex; gap: .5rem; padding-block-start: .7rem; }
+.game-controls > button:first-child, #steer-controls { flex: 1; }
+#steer-controls { display: flex; gap: .5rem; }
+#steer-controls button { flex: 1; touch-action: none; user-select: none; }
+#flap-control { touch-action: manipulation; user-select: none; }
+.game-controls kbd { margin-inline-start: .5rem; font-size: .6rem; }
+.game-help { margin: .7rem .3rem .3rem; font-size: .65rem; }
+.room-panel { position: relative; min-inline-size: 0; padding-block: 1.5rem; }
+.room-spark { display: block; color: var(--pink); font-size: 3.5rem; line-height: 1; margin-block-end: 1.5rem; }
+.room-panel h3 { font-size: clamp(2rem, 3.6vw, 3.7rem); line-height: .93; letter-spacing: -.06em; margin: 0 0 1rem; font-weight: 800; }
+.room-panel > p:not(.room-status):not(.room-reaction) { max-inline-size: 29ch; font-size: 1rem; line-height: 1.5; color: var(--muted); }
+#room-connect > button, #room-start { inline-size: 100%; }
+#join-form { margin-block-start: 1.2rem; }
+#join-form label, .invite-label { display: block; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .7rem; margin-block-end: .5rem; }
+.join-row { display: flex; gap: .5rem; }
+.arcade input:not([type="checkbox"]) { min-inline-size: 0; inline-size: 100%; min-block-size: 44px; padding: .7rem; border: 1px solid color-mix(in oklch, var(--paper), transparent 65%); border-radius: .5rem; background: color-mix(in oklch, var(--ink), var(--paper) 5%); color: var(--paper); font: 400 16px ui-monospace, SFMono-Regular, Menlo, monospace; }
+.arcade input:focus-visible { outline: 2px solid var(--acid); outline-offset: 3px; }
+.join-row button { flex-shrink: 0; }
+.room-status { margin-block-start: 1.25rem; font-size: .7rem; }
+.room-details { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-block: 1rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.room-details strong { color: var(--acid); letter-spacing: .1em; font-size: 1.1rem; }
+#room-count { color: var(--muted); font-size: .75rem; }
+#invite-link { font-size: 1rem; }
+#copy-invite { inline-size: 100%; margin-block-start: .5rem; }
+.room-roster { display: grid; gap: .3rem; list-style: none; margin: 1.3rem 0; padding: 0; }
+.room-roster li { display: flex; gap: .6rem; align-items: center; padding-block: .5rem; font-size: .82rem; }
+.room-roster i { flex-shrink: 0; inline-size: .7rem; block-size: .7rem; border-radius: 50%; }
+.room-roster strong { margin-inline-start: auto; color: var(--acid); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .7rem; font-variant-numeric: tabular-nums; }
+.room-audio-label { display: flex; align-items: center; min-block-size: 44px; gap: .7rem; font-size: .8rem; margin-block: .5rem; }
+.room-audio-label input { accent-color: var(--acid); inline-size: 20px; block-size: 20px; }
+.room-reaction { color: var(--pink); min-block-size: 2lh; }
+.sound-card:nth-child(4n + 2) { background: var(--orange); }
+.sound-card:nth-child(4n + 3) { background: var(--pink); }
+.sound-card:nth-child(4n + 4) { background: var(--acid); }
+.sound-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr)); }
+@media (hover: hover) and (pointer: fine) {
+  .arcade-link:hover { color: var(--pink); }
+  .arcade button:not(:disabled):hover { border-color: var(--acid); }
+}
+@media (max-width: 52rem) {
+  .arcade-layout { grid-template-columns: minmax(0, 1fr); }
+  .game-machine { inline-size: min(100%, 32rem); justify-self: center; }
+  .room-panel { padding-block-start: 1rem; }
+  .room-spark { display: none; }
+  .room-panel h3 br { display: none; }
+  .room-panel h3 { font-size: 2.6rem; }
+}
+@media (max-width: 38rem) {
+  .topbar-actions { gap: .6rem; }
+  .arcade-link { font-size: .75rem; }
+  .game-tabs button { padding: .7rem; font-size: 1rem; }
+  .sound-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sound-name { font-size: clamp(1.45rem, 6vw, 1.75rem); }
+  .arcade .section-heading h2 { font-size: 2.4rem; }
+  .game-hud { font-size: .6rem; }
 }
