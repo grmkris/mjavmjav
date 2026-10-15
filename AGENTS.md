@@ -1,5 +1,7 @@
 # mjavmjav.com agent instructions
 
+Master instructions. `CLAUDE.md` links to this file; edit `AGENTS.md`.
+
 This is a tiny, static Cloudflare Worker site for `mjavmjav.com`, a playful cat
 soundboard. Keep the project deliberately small: HTML, CSS, browser JavaScript,
 and an SVG mascot are the product.
@@ -10,6 +12,9 @@ and an SVG mascot are the product.
 - Cloudflare Worker static assets, configured in `wrangler.jsonc`.
 - Use Bun for scripts. `bun run check` runs the local checks; `bun run dev` previews;
   `bun run deploy` deploys the Worker and its custom domain.
+- Run `heavy bun run test` for the desktop and 390px browser suite. Use
+  `SITE_URL=https://mjavmjav.com` to run it against the live site.
+  `bun test` invokes Bun's runner; use `bun run test` for Playwright.
 - Work on `main`. Commit each coherent, verified change. Stage explicit paths only.
   Never stash, reset, restore, or blanket-stage another agent's work.
 - Run `bunx repoagents@1 check` after changing agent configuration.
@@ -18,7 +23,8 @@ and an SVG mascot are the product.
 
 - The page should feel like an intentionally silly internet artifact: loud, warm,
   weird, and quick to understand. Keep the cat as the visual focus.
-- Sound is generated locally with the Web Audio API. Do not add remote audio,
+- Bundle audio and font files locally with license provenance. The main meow is
+  a CC0 recording; the other sounds use Web Audio. Do not add remote audio,
   tracking, or third-party runtime dependencies.
 - Every sound action has a visible label and a mute control. Keyboard shortcuts are
   documented and must not be the only way to use the soundboard.
