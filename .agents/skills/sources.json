@@ -1,0 +1,87 @@
+{
+  "version": 2,
+  "skills": {
+    "animate": {
+      "repository": "emilkowalski/skills",
+      "commit": "e8a175de22ae1e49370fc144c1f3bb9aeedf988d",
+      "path": "skills/animate",
+      "license": "MIT",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "cad4cbda82810bbd771af0c636015ceab28a89460f619d48332709cc370a57c4",
+      "localTreeSha256": "585419279f9b7cd085f67d961158ab8413be20a57b1c78ced831db3cbe044685",
+      "unchanged": false,
+      "adaptation": "Cross-reference points at find-animation-opportunities (improve-animations is not in the shared set).",
+      "baseCommit": "e8a175de22ae1e49370fc144c1f3bb9aeedf988d"
+    },
+    "frontend-design": {
+      "repository": "anthropics/skills",
+      "commit": "dbd4588f9e1033efb41dad4bef2f7947c8993d44",
+      "path": "skills/frontend-design",
+      "license": "Apache-2.0",
+      "licenses": [
+        "LICENSE.txt"
+      ],
+      "treeSha256": "7e9c2af00fd5b3144f49ce6fb1b16037b392ab9c2f049423b0b6114d99381ba2",
+      "localTreeSha256": "7e9c2af00fd5b3144f49ce6fb1b16037b392ab9c2f049423b0b6114d99381ba2",
+      "unchanged": true
+    },
+    "good-css": {
+      "repository": "vojtaholik/good-css",
+      "commit": "b645ab15b9fcd059c0227c21b6a144bb70639f1a",
+      "path": "skills/good-css",
+      "license": "MIT",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "c2a7a6b2a292b775cd700bfe8440ea07df308ae5bd379f8a037cf6d795f7b2d4",
+      "localTreeSha256": "20af66f79b57c1c1319056092bca631d4ff89a42fc7aac755881508b1606ac3a",
+      "unchanged": false,
+      "adaptation": "Description narrowed to CSS implementation; direction and finish deferred to frontend-design and make-interfaces-feel-better.",
+      "baseCommit": "b645ab15b9fcd059c0227c21b6a144bb70639f1a"
+    },
+    "make-interfaces-feel-better": {
+      "repository": "jakubkrehel/make-interfaces-feel-better",
+      "commit": "35545ea1512ad59fa463e6b1f95ca9c052981fe6",
+      "path": "skills/make-interfaces-feel-better",
+      "license": "MIT",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "a38394c031e268bf8d7d05ff6f742baf1787395692bedf76f07cef911c472bcb",
+      "localTreeSha256": "3fd67c0f8a5f0d5777331755f0c6d08745e50aa247b09dd34f29438d597f1853",
+      "unchanged": false,
+      "adaptation": "Description narrowed to static polish; motion and visual direction deferred to animate/apple-design and frontend-design (no overlap in the shared set).",
+      "baseCommit": "35545ea1512ad59fa463e6b1f95ca9c052981fe6"
+    },
+    "mobile-native": {
+      "repository": "emilkowalski/skills",
+      "commit": "e8a175de22ae1e49370fc144c1f3bb9aeedf988d",
+      "path": "skills/mobile-native",
+      "license": "MIT",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "e09d6a584beac50f1f52be3c80164e1935ca0694f9e93fcb6893b564c7ce1d44",
+      "localTreeSha256": "1f4c18339885d3a74329fb24a2daec840726a9d30ce473aa548dbc7776bf6710",
+      "unchanged": false,
+      "adaptation": "Description narrowed to general touch/mobile web; Apple and Safari specifics deferred to apple-web-app.",
+      "baseCommit": "e8a175de22ae1e49370fc144c1f3bb9aeedf988d"
+    },
+    "wrangler": {
+      "repository": "cloudflare/skills",
+      "commit": "0871daceb347e3c51693fbe9c77555468df7e410",
+      "path": "skills/wrangler",
+      "license": "Apache-2.0",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "1e707db60202e48cdd03b2456b85580b03b713d7a2bc2c459fce8d37e2ea28f2",
+      "localTreeSha256": "ce7fb8fd999337d8dcd7796284db3c8af432c9077a2df60369790c3f1ce16af3",
+      "unchanged": false,
+      "adaptation": "Made manual-only (disable-model-invocation: true). agents/openai.yaml disables implicit invocation in Codex.",
+      "baseCommit": "0871daceb347e3c51693fbe9c77555468df7e410"
+    }
+  }
+}
