@@ -19,6 +19,11 @@ let socket;
 let selfId = 'solo';
 let room;
 let connecting = false;
+let sharedView = true;
+let retryTimer;
+let retryDelay = 1000;
+let pageGone = false;
+let stageSounds = [];
 let roomAudio = false;
 let lastFrame = 0;
 let lastSound = 0;
@@ -27,13 +32,13 @@ let lastNetworkInput = 0;
 let lastSnapshot = 0;
 let previousJumps = 0;
 let gameOverHandled = false;
-let reactionTimer;
+
 let best = {};
 try { best = JSON.parse(localStorage.getItem('mjav-best') || '{}') || {}; } catch { best = {}; }
 
 function sound(kind) { window.dispatchEvent(new CustomEvent('cat:game-sound', { detail: { kind } })); }
 function send(data) { if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(data)); }
-function me() { return world?.players.find((player) => player.id === selfId); }
+function me() { return world?.players.find((player) => player.id === (sharedView ? selfId : 'solo')); }
 function active() { return running && !paused && world?.phase === 'playing' && me()?.alive; }
 function setMessage(text) { $('room-status').textContent = text; }
 function focusGame() {
@@ -63,14 +68,18 @@ function showOverlay(title, description) {
   $('game-overlay').hidden = false;
   $('game-title').textContent = title;
   $('game-instructions').textContent = description;
-  $('solo-start').hidden = Boolean(room);
-  $('solo-start').textContent = gameOverHandled ? 'again. obviously.' : 'play solo';
+  $('solo-start').hidden = false;
+  $('solo-start').textContent = !sharedView && gameOverHandled ? 'again. obviously.' : 'play solo';
 }
 
 function startSolo() {
-  if (room) return;
-  selfId = 'solo';
-  world = createGame(mode, [{ id: selfId, name: 'You' }], crypto.getRandomValues(new Uint32Array(1))[0]);
+  send({ type: 'queue', join: false });
+  send({ type: 'retire' });
+  sharedView = false;
+  $('watch-global').hidden = false;
+  $('pause-game').disabled = false;
+  for (const button of modeButtons) button.disabled = false;
+  world = createGame(mode, [{ id: 'solo', name: 'You' }], crypto.getRandomValues(new Uint32Array(1))[0]);
   running = true; paused = false; gameOverHandled = false; previousJumps = 0;
   $('game-overlay').hidden = true;
   $('pause-game').textContent = 'pause';
@@ -89,14 +98,14 @@ function finish() {
   $('game-state').textContent = 'cat.exe has stopped';
   const winner = [...world.players].sort((a, b) => b.score - a.score || b.survived - a.survived)[0];
   const title = mode === 'flappy' ? 'outplayed by a vegetable.' : 'gravity remains undefeated.';
-  showOverlay(title, room ? `${winner.name} leads with ${winner.score}. The host can start another round.` : `${score} ${mode === 'flappy' ? 'cucumbers escaped' : 'metres of bad decisions'}. Your cat requests a rematch.`);
-  sound('bonk');
+  showOverlay(title, sharedView ? `${winner.name} leads with ${winner.score}. Join the queue for another round.` : `${score} ${mode === 'flappy' ? 'cucumbers escaped' : 'metres of bad decisions'}. Your cat requests a rematch.`);
+  if (me()) sound('bonk');
 }
 
 function input(next) {
   if (!active()) return;
-  applyInput(world, selfId, next);
-  if (room) send({ type: 'input', ...next });
+  applyInput(world, sharedView ? selfId : 'solo', next);
+  if (sharedView) send({ type: 'input', ...next });
   if (next.flap && performance.now() - lastSound > 160) { sound('blep'); lastSound = performance.now(); }
 }
 function steer(value) { direction = value; input({ direction: value }); }
@@ -105,36 +114,38 @@ function flap() { if (mode === 'flappy') input({ flap: true }); }
 function render(time) {
   const dt = Math.min((time - (lastFrame || time)) / 1000, 0.05);
   lastFrame = time;
-  if (running && !paused && (!room || performance.now() - lastSnapshot < 150)) {
+  if (running && !paused && (!sharedView || performance.now() - lastSnapshot < 150)) {
     const steps = Math.max(1, Math.ceil(dt * 60));
     for (let i = 0; i < steps; i++) stepGame(world, dt / steps);
   }
-  if (room && active() && mode === 'jump' && time - lastNetworkInput > 100) { send({ type: 'input', direction }); lastNetworkInput = time; }
+  if (sharedView && active() && mode === 'jump' && time - lastNetworkInput > 100) { send({ type: 'input', direction }); lastNetworkInput = time; }
   const player = me();
   if (player) {
     $('current-score').textContent = String(player.score);
     recordBest();
     if (player.jumps > previousJumps && time - lastSound > 200) { sound('boing'); lastSound = time; }
     previousJumps = player.jumps;
-    if (room && !player.alive && world.phase !== 'over') $('game-state').textContent = 'you bonked · spectating';
+    if (sharedView && !player.alive && world.phase !== 'over') $('game-state').textContent = 'you bonked · spectating';
   }
-  if (running && world.phase === 'over' && !room) finish();
-  drawGame(ctx, world, selfId, time, reduced.matches);
+  if (running && world.phase === 'over' && !sharedView) finish();
+  drawGame(ctx, world, sharedView ? selfId : 'solo', time, reduced.matches);
   requestAnimationFrame(render);
 }
 
 modeButtons.forEach((button) => button.addEventListener('click', () => {
-  if (room && world?.phase !== 'over' && running) return;
+  if (sharedView && world?.phase !== 'over' && running) return;
   updateMode(button.dataset.game);
-  if (!room) {
+  if (!sharedView) {
     world = createGame(mode, [{ id: 'solo', name: 'You' }], 12345);
     running = false; paused = false; gameOverHandled = false;
     showOverlay(modeNames[mode], instructions[mode]);
   }
+  if (room) updateRoster();
 }));
 $('solo-start').addEventListener('click', startSolo);
+$('practice-solo').addEventListener('click', startSolo);
 $('pause-game').addEventListener('click', () => {
-  if (room || !running || world.phase === 'over') return;
+  if (sharedView || !running || world.phase === 'over') return;
   paused = !paused;
   $('pause-game').textContent = paused ? 'resume' : 'pause';
   $('game-state').textContent = paused ? 'cat nap · paused' : 'solo cat';
@@ -153,7 +164,7 @@ for (const [id, value] of [['steer-left', -1], ['steer-right', 1]]) {
 }
 document.addEventListener('keydown', (event) => {
   if (event.target.closest('input, textarea, select, [contenteditable]') || event.altKey || event.ctrlKey || event.metaKey) return;
-  if (event.key === 'Escape' && !room && running && world.phase !== 'over') {
+  if (event.key === 'Escape' && !sharedView && running && world.phase !== 'over') {
     paused = true; $('pause-game').textContent = 'resume'; $('game-state').textContent = 'cat nap · paused';
   }
   if (event.target.closest('button, a') || !active() || ![' ', 'ArrowLeft', 'ArrowRight', 'a', 'd', 'A', 'D'].includes(event.key)) return;
@@ -167,120 +178,172 @@ window.addEventListener('blur', () => steer(0));
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) return;
   steer(0);
-  if (!room && running) { paused = true; $('pause-game').textContent = 'resume'; $('game-state').textContent = 'cat nap · paused'; }
+  if (!sharedView && running) { paused = true; $('pause-game').textContent = 'resume'; $('game-state').textContent = 'cat nap · paused'; }
 });
 
 function updateRoster() {
   const fragment = document.createDocumentFragment();
-  for (const player of room.players) {
+  const race = room.world && room.world.phase !== 'over';
+  const priority = [...room.players].sort((a, b) => (b.id === selfId) - (a.id === selfId));
+  for (const player of priority.slice(0, 12)) {
     const row = document.createElement('li');
     const label = document.createElement('span'); label.textContent = `${player.name}${player.id === selfId ? ' (you)' : ''}`;
-    const badge = document.createElement('i'); badge.style.backgroundColor = player.color; badge.setAttribute('aria-hidden', 'true');
+    const badge = document.createElement('i'); badge.setAttribute('aria-hidden', 'true');
     const score = document.createElement('strong');
     const avatar = room.world?.players.find((p) => p.id === player.id);
-    score.textContent = avatar ? `${avatar.score}${avatar.alive ? '' : ' ☠'}` : player.id === room.hostId ? 'host' : 'ready';
+    badge.style.backgroundColor = race && avatar ? avatar.color : player.color;
+    const queued = room.queue.indexOf(player.id);
+    score.textContent = queued >= 0 ? `queue #${queued + 1}` : avatar && race ? `${avatar.score}${avatar.alive ? ' racing' : ' ☠'}` : 'loafing';
     row.append(badge, label, score); fragment.append(row);
   }
+  if (room.players.length > 12) {
+    const more = document.createElement('li'); more.textContent = `+ ${room.players.length - 12} more cats in the audience`; fragment.append(more);
+  }
   $('room-roster').replaceChildren(fragment);
-  $('room-start').hidden = room.hostId !== selfId;
-  $('room-start').disabled = Boolean(room.world && room.world.phase !== 'over');
-  for (const button of modeButtons) button.disabled = room.hostId !== selfId || Boolean(room.world && room.world.phase !== 'over');
-  $('room-start').textContent = room.world?.phase === 'over' ? 'start another round' : `start ${modeNames[mode]}`;
-  $('room-count').textContent = `${room.players.length}/8 cats`;
+  const queued = room.queue.includes(selfId);
+  $('room-queue').disabled = false;
+  $('room-queue').textContent = queued ? `leave queue · #${room.queue.indexOf(selfId) + 1}` : 'join next round';
+  $('room-queue').setAttribute('aria-pressed', String(queued));
+  $('room-start').disabled = !queued || Boolean(race);
+  $('room-start').textContent = race ? 'global round in progress' : `launch ${modeNames[mode]} · ${Math.min(8, room.queue.length)}/8`;
+  for (const button of modeButtons) button.disabled = sharedView && Boolean(race);
+  $('room-count').textContent = `${room.players.length} ${room.players.length === 1 ? 'cat' : 'cats'} online`;
+  $('queue-status').textContent = `${room.queue.length} queued · 8 race seats · everybody else spectates`;
 }
 
-function connectedUI(code) {
+function showLobby() {
   running = false; paused = false; gameOverHandled = false;
-  world = createGame(mode, [{ id: selfId, name: 'You' }], 12345);
-  $('game-state').textContent = 'cat council lobby';
-  $('room-connect').hidden = true;
-  $('room-connected').hidden = false;
-  $('room-code').textContent = code;
-  const url = new URL(location.href); url.searchParams.set('room', code); url.hash = 'arcade';
-  $('invite-link').value = url.href;
-  history.replaceState(null, '', url);
-  $('pause-game').disabled = true;
-  showOverlay('the council is assembling.', 'Invite a friend, pick a game, then the host starts the round.');
-  setMessage('Connected. Your cat name has been assigned by the universe.');
+  world = createGame(mode, [], 12345);
+  $('current-score').textContent = '0';
+  $('game-state').textContent = room ? 'global cat lobby' : 'connecting to the cats';
+  showOverlay('one room. zero brain cells.', 'Join the queue to race everyone. Or practice solo while the cats do their thing.');
 }
 
-function leaveRoom(message = 'Room left. Solo cat privileges restored.') {
-  const old = socket; socket = undefined; old?.close(1000, 'Cat left');
-  room = undefined; connecting = false; selfId = 'solo'; running = false; paused = false;
-  world = createGame(mode, [{ id: 'solo', name: 'You' }], 12345);
-  $('room-connect').hidden = false; $('room-connected').hidden = true; $('pause-game').disabled = false;
-  $('pause-game').textContent = 'pause'; $('game-state').textContent = 'solo cat';
-  for (const button of modeButtons) button.disabled = false;
-  $('create-room').disabled = false; $('join-room').disabled = false;
-  const url = new URL(location.href); url.searchParams.delete('room'); history.replaceState(null, '', url);
-  gameOverHandled = false; showOverlay(modeNames[mode], instructions[mode]); setMessage(message);
+function sharedWorld(next) {
+  if (!sharedView) return;
+  if (!next) { showLobby(); return; }
+  const newRound = world.round !== next.round;
+  world = next; lastSnapshot = performance.now(); running = true; paused = false;
+  if (newRound || (world.phase !== 'over' && mode !== world.mode)) updateMode(world.mode);
+  if (newRound) {
+    previousJumps = 0; gameOverHandled = false;
+    // Only a cat that opted into this race gets pulled to the game.
+    if (me() && world.phase === 'countdown') focusGame();
+  }
+  if (world.phase === 'over') finish();
+  else {
+    $('game-overlay').hidden = true;
+    $('game-state').textContent = !me() ? 'front-row cat seat · spectating' : world.phase === 'countdown' ? 'synchronising brain cells' : 'global cat race';
+  }
 }
 
-async function joinRoom(code) {
-  if (connecting || room) return;
-  code = code.trim().toLowerCase();
-  if (!/^[a-z0-9]{8}$/.test(code)) return setMessage('Room codes have eight letters or numbers.');
-  connecting = true; $('create-room').disabled = true; $('join-room').disabled = true;
-  setMessage('Calling the other brain cells…');
-  const url = new URL(`/api/rooms/${code}`, location.origin); url.protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+function watchGlobal() {
+  sharedView = true; paused = false;
+  // Force the overlay to reset when returning from a solo round.
+  world = createGame(mode, [], 12345);
+  world.round = '';
+  $('watch-global').hidden = true; $('pause-game').disabled = true;
+  sharedWorld(room?.world);
+  if (room) updateRoster();
+}
+
+const faces = { mjav: ':3', prrr: '≋', blep: ':P', yap: '!!!', eepy: 'zz', ufo: '⊙', honk: '!?', bonk: '×', boing: '⌁', ascend: '✧' };
+function renderStage() {
+  const latest = stageSounds.at(-1);
+  $('stage-face').textContent = latest ? faces[latest.sound] || ':3' : ':3';
+  $('stage-now').textContent = latest ? `${latest.name} dropped a ${latest.sound}` : 'the microphone is covered in fur.';
+  const list = $('sound-stage-list');
+  const visible = stageSounds.slice(-6);
+  const keys = new Set(visible.map((item) => item.key));
+  for (const row of [...list.children]) if (!keys.has(row.dataset.key)) row.remove();
+  for (const item of visible) {
+    if ([...list.children].some((row) => row.dataset.key === item.key)) continue;
+    const row = document.createElement('li');
+    row.dataset.key = item.key;
+    const text = document.createElement('span'); text.textContent = `${item.name}${item.id === selfId ? ' (you)' : ''} · ${item.sound}`;
+    const echo = document.createElement('button'); echo.type = 'button'; echo.textContent = 'echo ↗';
+    echo.setAttribute('aria-label', `Echo ${item.sound} by ${item.name}`);
+    echo.addEventListener('click', () => window.dispatchEvent(new CustomEvent('cat:perform', { detail: { kind: item.sound } })));
+    row.append(text, echo); list.prepend(row);
+  }
+}
+
+function joinGlobal() {
+  if (pageGone || connecting || socket?.readyState === WebSocket.OPEN) return;
+  clearTimeout(retryTimer);
+  connecting = true;
+  setMessage('Calling the global brain cell…');
+  const url = new URL('/api/room', location.origin); url.protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
   const current = new WebSocket(url); socket = current;
-  const timeout = setTimeout(() => { if (connecting) leaveRoom('The cat phone timed out. Try joining again.'); }, 10000);
+  let lastSeen = Date.now();
+  const timeout = setTimeout(() => lost(), 10000);
+  const heartbeat = setInterval(() => {
+    if (Date.now() - lastSeen > 45000) lost();
+    else if (current.readyState === WebSocket.OPEN) current.send('ping');
+  }, 20000);
+  function lost() {
+    clearTimeout(timeout); clearInterval(heartbeat);
+    if (socket !== current) return;
+    socket = undefined; connecting = false; room = undefined;
+    current.close();
+    $('room-count').textContent = 'reconnecting…';
+    $('room-queue').disabled = true; $('room-start').disabled = true;
+    $('room-roster').replaceChildren();
+    $('queue-status').textContent = 'Rejoin the race queue after reconnecting.';
+    if (sharedView) showLobby();
+    setMessage('Cat phone disconnected. Reconnecting automatically… Solo still works.');
+    if (!pageGone) {
+      retryTimer = setTimeout(joinGlobal, retryDelay + Math.random() * 400);
+      retryDelay = Math.min(15000, retryDelay * 2);
+    }
+  }
   current.addEventListener('message', (event) => {
-    if (socket !== current || event.data === 'pong') return;
+    if (socket !== current) return;
+    lastSeen = Date.now();
+    if (event.data === 'pong') return;
     let data; try { data = JSON.parse(event.data); } catch { return; }
-    if (data.type === 'welcome') { selfId = data.id; return; }
+    if (data.type === 'welcome') {
+      selfId = data.id; stageSounds = data.sounds || []; renderStage(); return;
+    }
     if (data.type === 'state') {
       const first = !room;
       room = data;
-      if (first) { connecting = false; clearTimeout(timeout); connectedUI(code); }
-      if (data.world) {
-        const newRound = world.round !== data.world.round;
-        world = data.world; lastSnapshot = performance.now(); running = true; paused = false;
-        updateMode(world.mode);
-        if (newRound) {
-          previousJumps = 0; gameOverHandled = false;
-          if (world.players.some((player) => player.id === selfId)) focusGame();
-        }
-        if (world.phase === 'over') finish();
-        else {
-          $('game-overlay').hidden = false;
-          if (world.players.some((p) => p.id === selfId)) $('game-overlay').hidden = true;
-          else showOverlay('front-row cat seat.', 'This round is already running. You join the next one.');
-          $('game-state').textContent = world.phase === 'countdown' ? 'synchronising brain cells' : 'room race';
-        }
+      if (first) {
+        connecting = false; retryDelay = 1000; clearTimeout(timeout);
+        setMessage('You are in the global lobby. Soundboard presses go to everyone.');
       }
+      sharedWorld(data.world);
+      updateRoster();
+    } else if (data.type === 'frame' && room) {
+      room.world = data.world;
+      sharedWorld(data.world);
       updateRoster();
     } else if (data.type === 'reaction') {
+      stageSounds = [...stageSounds, data].slice(-12); renderStage();
       $('room-reaction').textContent = `${data.name}: ${data.sound}!`;
-      clearTimeout(reactionTimer); reactionTimer = setTimeout(() => { $('room-reaction').textContent = ''; }, 2200);
       if (roomAudio && data.id !== selfId && !document.hidden) sound(data.sound);
-    }
+    } else if (data.type === 'notice') setMessage(data.text);
   });
-  current.addEventListener('close', () => { clearTimeout(timeout); if (socket === current) leaveRoom('Connection closed. The room may be full or asleep. Rejoin to play again.'); });
-  current.addEventListener('error', () => { clearTimeout(timeout); if (socket === current) leaveRoom('Could not join that room. Check the code or make a new one.'); });
+  current.addEventListener('close', lost);
+  current.addEventListener('error', lost);
 }
-$('create-room').addEventListener('click', async () => {
-  if (connecting || room) return;
-  $('create-room').disabled = true;
-  setMessage('Building a small enclosure for your friends…');
-  try {
-    const response = await fetch('/api/rooms', { method: 'POST' });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'The room factory is taking a nap.');
-    await joinRoom(data.code);
-  } catch (error) { setMessage(error.message); $('create-room').disabled = false; }
+$('room-queue').addEventListener('click', () => {
+  if (!room) return;
+  const queued = room.queue.includes(selfId);
+  if (!sharedView) watchGlobal();
+  send({ type: 'queue', join: !queued });
 });
-$('join-form').addEventListener('submit', (event) => { event.preventDefault(); joinRoom($('join-code').value); });
-$('room-leave').addEventListener('click', () => leaveRoom());
 $('room-start').addEventListener('click', () => send({ type: 'start', mode }));
-$('copy-invite').addEventListener('click', async () => {
-  try { await navigator.clipboard.writeText($('invite-link').value); setMessage('Link copied. Send it to your fellow unemployed cats.'); }
-  catch { $('invite-link').focus(); $('invite-link').select(); setMessage('Copy the selected room link and send it to a friend.'); }
-});
+$('watch-global').addEventListener('click', watchGlobal);
 $('room-audio').addEventListener('change', () => { roomAudio = $('room-audio').checked; if (roomAudio) sound('blep'); });
 window.addEventListener('cat:reaction', (event) => { if (room) send({ type: 'reaction', sound: event.detail.kind }); });
-window.addEventListener('pagehide', () => socket?.close(1000, 'Cat left'));
+window.addEventListener('online', joinGlobal);
+window.addEventListener('pagehide', () => { pageGone = true; clearTimeout(retryTimer); socket?.close(1000, 'Cat left'); });
+window.addEventListener('pageshow', () => { pageGone = false; joinGlobal(); });
 
-updateMode(mode); drawGame(ctx, world, selfId, 0, reduced.matches); requestAnimationFrame(render);
-const invited = new URL(location.href).searchParams.get('room');
-if (invited) { $('join-code').value = invited; setMessage('A cat invited you. Press join room when you are ready.'); }
+updateMode(mode); showLobby(); $('pause-game').disabled = true;
+$('room-queue').disabled = true; $('room-start').disabled = true;
+requestAnimationFrame(render);
+const url = new URL(location.href);
+if (url.searchParams.has('room')) { url.searchParams.delete('room'); history.replaceState(null, '', url); }
+joinGlobal();

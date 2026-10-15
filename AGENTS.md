@@ -4,7 +4,7 @@ Master instructions. `CLAUDE.md` links to this file; edit `AGENTS.md`.
 
 This is a playful cat soundboard and arcade for `mjavmjav.com`. Keep the project
 small: HTML, CSS, browser JavaScript, canvas games, and an SVG mascot. A Cloudflare
-Durable Object coordinates each multiplayer room; solo games stay in the browser.
+Durable Object coordinates the single global multiplayer lobby; solo games stay in the browser.
 
 ## Stack and commands
 
@@ -13,7 +13,8 @@ Durable Object coordinates each multiplayer room; solo games stay in the browser
 - Use Bun for scripts. `bun run check` runs the local checks; `bun run dev` previews;
   `bun run deploy` deploys the Worker and its custom domain.
 - Run `heavy bun run test` for the desktop and 390px browser suite. Use
-  `SITE_URL=https://mjavmjav.com` to run it against the live site.
+  `SITE_URL=https://mjavmjav.com` to run production-safe checks against the live site.
+  Keep race sequencing, capacity, and spam probes local: production is one shared lobby.
   `bun test` invokes Bun's runner; use `bun run test` for Playwright.
 - Work on `main`. Commit each coherent, verified change. Stage explicit paths only.
   Never stash, reset, restore, or blanket-stage another agent's work.

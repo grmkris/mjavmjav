@@ -68,7 +68,7 @@
       <section class="arcade" id="arcade" aria-labelledby="arcade-title">
         <div class="section-heading">
           <div><p class="eyebrow"><span>the cat arcade</span> / zero transferable skills</p><h2 id="arcade-title">skill issue simulator.</h2></div>
-          <p class="arcade-intro">Two games. Eight cats. One shared brain cell.</p>
+          <p class="arcade-intro">Two games. One global lobby. Eight active brain cells.</p>
         </div>
         <div class="game-tabs" role="group" aria-label="Choose a game">
           <button type="button" data-game="flappy" aria-pressed="true">Flappy Mjav <span>cat vs. cucumber</span></button>
@@ -85,15 +85,28 @@
             <p class="game-help" id="game-help">Tap or press Space to flap. Avoid the cucumbers.</p>
           </div>
           <aside class="room-panel" aria-labelledby="room-title">
-            <span class="room-spark" aria-hidden="true">✹</span><h3 id="room-title">bring the other<br />brain cells.</h3><p>Make a room. Share the link. Race up to eight cats on the same course.</p>
-            <div id="room-connect"><button class="arcade-primary" type="button" id="create-room">make a room</button><form id="join-form"><label for="join-code">Already have a code?</label><div class="join-row"><input id="join-code" name="room" placeholder="8-letter code" maxlength="8" minlength="8" pattern="[a-zA-Z0-9]{8}" required autocomplete="off" autocapitalize="none" spellcheck="false" /><button type="submit" id="join-room">join room</button></div></form></div>
-            <div id="room-connected" hidden><div class="room-details"><strong id="room-code"></strong><span id="room-count"></span></div><label class="invite-label" for="invite-link">Your room link</label><input id="invite-link" readonly /><button type="button" id="copy-invite">copy invite link</button><ul class="room-roster" id="room-roster" aria-label="Cats in this room"></ul><button class="arcade-primary" type="button" id="room-start">start group round</button><label class="room-audio-label"><input type="checkbox" id="room-audio" /> hear the other cats</label><button type="button" id="room-leave">leave room</button></div>
-            <p class="room-status" id="room-status" role="status">No account. Just vibes. Rooms take a nap after one hour.</p><p class="room-reaction" id="room-reaction" aria-live="polite"></p>
+            <span class="room-spark" aria-hidden="true">✹</span><h3 id="room-title">the global<br />cat lobby.</h3><p>Everybody lands in the same ridiculous room. Join the next round, spectate the chaos, and throw sounds at the audience.</p>
+            <div id="room-connected">
+              <div class="room-details"><strong>● MJAV HQ</strong><span id="room-count">connecting…</span></div>
+              <div class="lobby-actions"><button class="arcade-primary" type="button" id="room-queue" aria-pressed="false">join next round</button><button type="button" id="room-start">launch global round</button></div>
+              <p class="queue-status" id="queue-status">8 race seats · everybody else spectates</p>
+              <div class="practice-actions"><button type="button" id="practice-solo">practice solo</button><button type="button" id="watch-global" hidden>watch global ↗</button></div>
+              <ul class="room-roster" id="room-roster" aria-label="Cats in the global lobby"></ul>
+              <section class="sound-stage" aria-labelledby="sound-stage-title">
+                <div class="stage-heading"><h4 id="sound-stage-title">the global<br />yap stage.</h4><span id="stage-face" aria-hidden="true">:3</span></div>
+                <p id="stage-now">the microphone is covered in fur.</p>
+                <label class="room-audio-label"><input type="checkbox" id="room-audio" /> hear the other cats</label>
+                <p class="stage-hint">Drop a sound below. Everyone sees it. Listening cats hear it. Echo a noise to send it back.</p>
+                <a class="arcade-link" href="#soundboard">take the microphone ↓</a>
+                <ol id="sound-stage-list" aria-label="Recent global sounds"></ol>
+              </section>
+            </div>
+            <p class="room-status" id="room-status" role="status">One global room. No codes. Connecting your cat…</p><p class="room-reaction" id="room-reaction" aria-live="polite"></p>
           </aside>
         </div>
       </section>
 
-      <section class="soundboard" aria-labelledby="soundboard-title">
+      <section class="soundboard" id="soundboard" aria-labelledby="soundboard-title">
         <div class="section-heading">
           <div>
             <p class="eyebrow"><span>the control room</span> / buttons go brrr</p>

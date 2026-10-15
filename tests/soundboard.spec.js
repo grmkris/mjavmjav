@@ -1,6 +1,15 @@
 import { test, expect } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
+  if (process.env.SITE_URL) await page.addInitScript(() => {
+    const NativeSocket = window.WebSocket;
+    window.WebSocket = class extends NativeSocket {
+      send(data) {
+        if (typeof data === 'string' && data.startsWith('{') && JSON.parse(data).type === 'reaction') return;
+        super.send(data);
+      }
+    };
+  });
   await page.addInitScript(() => {
     window.testSounds = { starts: 0, media: [] };
     const Audio = window.Audio;
@@ -90,33 +99,16 @@ test('all number shortcuts work after interacting with the page', async ({ page 
   await expect(page.locator('#status-text')).toHaveText(status);
 });
 
-test('arcade starts, switches games, and exposes room WebSocket state', async ({ page }) => {
+test('solo practice stays available inside the automatic global lobby', async ({ page }) => {
   await page.goto('/#arcade');
-  await page.getByRole('button', { name: 'play solo' }).click();
+  await expect(page.locator('#room-count')).toContainText('online');
+  await page.locator('#practice-solo').click();
   await expect(page.locator('#game-overlay')).toBeHidden();
   await page.getByRole('button', { name: /Boing Boing/ }).click();
   await expect(page.locator('#game-title')).toHaveText('Boing Boing');
-  await page.getByRole('button', { name: 'play solo' }).click();
-  const room = await page.evaluate(async () => {
-    const response = await fetch('/api/rooms', { method: 'POST' });
-    return { status: response.status, data: await response.json() };
-  });
-  expect(room.status).toBe(201);
-  expect(room.data.code).toMatch(/^[a-z0-9]{8}$/);
-  const messages = await page.evaluate((code) => new Promise((resolve, reject) => {
-    const socket = new WebSocket(`${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/api/rooms/${code}`);
-    const seen = [];
-    const timer = setTimeout(() => { socket.close(); reject(new Error('room socket timed out')); }, 5000);
-    socket.onmessage = (event) => {
-      if (event.data === 'pong') return;
-      seen.push(JSON.parse(event.data).type);
-      if (seen.includes('welcome') && seen.includes('state')) {
-        clearTimeout(timer); socket.close(); resolve(seen);
-      }
-    };
-    socket.onerror = () => { clearTimeout(timer); reject(new Error('room socket failed')); };
-  }), room.data.code);
-  expect(messages).toEqual(expect.arrayContaining(['welcome', 'state']));
+  await page.getByRole('button', { name: 'play solo', exact: true }).click();
+  await expect(page.locator('#watch-global')).toBeVisible();
+  await expect(page.locator('#room-count')).toContainText('online');
 });
 
 test('chaos stops with its button, Escape, and page visibility', async ({ page }) => {

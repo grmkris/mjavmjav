@@ -202,3 +202,8 @@ window.addEventListener('cat:game-sound', (event) => {
   const kind = event.detail?.kind;
   if (soundNames[kind] && !document.hidden) playSound(kind, false);
 });
+// An explicit echo is a new performance. Passive remote playback never rebroadcasts.
+window.addEventListener('cat:perform', (event) => {
+  const kind = event.detail?.kind;
+  if (soundNames[kind] && !document.hidden) playSound(kind);
+});
