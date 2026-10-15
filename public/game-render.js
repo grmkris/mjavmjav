@@ -51,14 +51,15 @@ export function drawGame(ctx, world, selfId, now, reduceMotion) {
     ctx.fillStyle = '#171229'; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'left'; ctx.fillText('the cucumber industrial complex', 16, HEIGHT - 7);
     for (const player of world.players.filter((p) => p.id !== selfId)) cat(ctx, player, player.y, false);
     if (self) cat(ctx, self, self.y, true);
-  } else {
+  } else if (world.mode === 'jump') {
     const camera = Math.min(0, (self?.bestY ?? 480) - 245);
     for (const pad of world.platforms) {
+      if (self?.broken?.includes(pad.index)) continue;
       const y = pad.y - camera;
       if (y < -20 || y > HEIGHT + 20) continue;
-      rounded(ctx, pad.x, y, pad.width, 13, 5, pad.index % 4 === 0 ? '#ffad70' : '#fff4d6');
-      if (pad.index % 4 === 0 && pad.index > 0) {
-        ctx.fillStyle = '#171229'; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center'; ctx.fillText(['toast', 'loaf', 'beanz'][pad.index % 3], pad.x + pad.width / 2, y + 10);
+      rounded(ctx, pad.x, y, pad.width, 13, 5, pad.fragile ? '#ffad70' : '#fff4d6');
+      if (pad.fragile) {
+        ctx.fillStyle = '#171229'; ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center'; ctx.fillText('crumbly', pad.x + pad.width / 2, y + 10);
       }
     }
     for (const player of world.players.filter((p) => p.id !== selfId)) cat(ctx, player, player.y - camera, false);
@@ -67,6 +68,26 @@ export function drawGame(ctx, world, selfId, now, reduceMotion) {
       ctx.fillStyle = '#17122999'; ctx.font = 'bold 12px monospace'; ctx.textAlign = 'center';
       ctx.fillText(self.score > 150 ? 'ground privileges revoked' : 'the floor misses you', WIDTH / 2, HEIGHT - 28);
     }
+    const danger = Math.max(0, world.danger - camera);
+    if (danger < HEIGHT) {
+      ctx.fillStyle = '#ff6b4a99'; ctx.fillRect(0, danger, WIDTH, HEIGHT - danger);
+      ctx.fillStyle = '#171229'; ctx.font = 'bold 12px "Bricolage Grotesque", sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('the floor is getting ideas', WIDTH / 2, Math.min(HEIGHT - 8, danger + 20));
+    }
+  } else if (world.mode === 'dodge') {
+    ctx.fillStyle = '#ffad70'; ctx.fillRect(0, 510, WIDTH, 50);
+    ctx.fillStyle = '#171229'; ctx.textAlign = 'center'; ctx.font = 'bold 13px "Bricolage Grotesque", sans-serif';
+    ctx.fillText('geese have chosen violence', WIDTH / 2, 545);
+    for (const hazard of world.hazards) {
+      ctx.save(); ctx.translate(hazard.x, hazard.y);
+      ctx.fillStyle = '#fff4d6'; ctx.strokeStyle = '#171229'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.ellipse(0, 3, hazard.radius, hazard.radius * 0.7, 0.3, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      rounded(ctx, 3, -hazard.radius, 14, 25, 7, '#fff4d6');
+      ctx.fillStyle = '#ff6b4a'; ctx.beginPath(); ctx.moveTo(16, -17); ctx.lineTo(28, -12); ctx.lineTo(16, -9); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#171229'; ctx.beginPath(); ctx.arc(12, -16, 2, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    }
+    for (const player of world.players.filter((p) => p.id !== selfId)) cat(ctx, player, player.y, false);
+    if (self) cat(ctx, self, self.y, true);
   }
   if (world.phase === 'countdown') {
     ctx.fillStyle = '#17122999'; ctx.fillRect(0, 0, WIDTH, HEIGHT);
