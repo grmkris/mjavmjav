@@ -10,6 +10,8 @@ let audioContext;
 let muted = false;
 let chaosTimer;
 let totalSounds = 0;
+const realMeow = new Audio('/meow.wav');
+realMeow.preload = 'auto';
 const soundNames = { mjav: 'mjav', prrr: 'prrrrt', blep: 'blep', yap: 'YAP YAP' };
 
 function getAudio() {
@@ -34,6 +36,10 @@ function tone(context, { frequency, type = 'sine', duration = 0.22, start = 0, e
 
 function playSound(kind) {
   if (!muted) {
+    if (kind === 'mjav') {
+      realMeow.currentTime = 0;
+      realMeow.play().catch(() => {});
+    }
     const context = getAudio();
     if (kind === 'mjav') {
       tone(context, { frequency: 520, end: 220, duration: 0.34, volume: 0.15 });
