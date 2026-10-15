@@ -30,7 +30,7 @@ test('page, self-hosted assets, touch targets and layout', async ({ page }, test
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('head empty.mjav loud.');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('tiny cats. big problems.');
   await expect(page.locator('[data-sound]')).toHaveCount(10);
   await page.evaluate(() => document.fonts.ready);
   expect(await page.evaluate(() => document.fonts.check('800 16px "Bricolage Grotesque"'))).toBe(true);
@@ -52,6 +52,20 @@ test('page, self-hosted assets, touch targets and layout', async ({ page }, test
     expect((await page.request.get(asset)).status()).toBe(200);
   }
   expect(errors).toEqual([]);
+  const viewport = await page.locator('.game-viewport').boundingBox();
+  expect(viewport.y).toBeLessThan(230);
+  // The live lobby may already be playing; never interrupt its round for a screenshot.
+  if (!process.env.SITE_URL || await page.locator('#overlay-play').isVisible()) {
+    const overlayPlay = await page.locator('#overlay-play').boundingBox();
+    expect(overlayPlay.y + overlayPlay.height).toBeLessThan(page.viewportSize().height);
+  }
+  if (testInfo.project.name === 'phone') {
+    expect(viewport.width).toBeGreaterThanOrEqual(340);
+    expect(viewport.height).toBeGreaterThanOrEqual(450);
+    const play = await page.locator('#quick-play').boundingBox();
+    expect(play.y + play.height).toBeLessThan(844);
+  } else expect(viewport.width).toBeGreaterThanOrEqual(470);
+  await page.screenshot({ path: testInfo.outputPath('first-screen.png') });
   await page.locator('#arcade').screenshot({ path: testInfo.outputPath('arcade.png') });
   await page.locator('.soundboard').screenshot({ path: testInfo.outputPath('soundboard.png') });
 });

@@ -17,14 +17,17 @@ export class CatRoom extends DurableObject {
       this.room = { id: 1, code: GLOBAL_ROOM, expires, snapshot: null };
     }
     this.world = this.room?.snapshot ? JSON.parse(this.room.snapshot) : null;
+    if (this.world?.version !== 2) this.world = null;
     ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS stage (id INTEGER PRIMARY KEY, events TEXT NOT NULL)');
     this.soundStage = JSON.parse(ctx.storage.sql.exec('SELECT events FROM stage WHERE id = 1').toArray()[0]?.events || '[]');
     this.timer = undefined;
+    this.nextRoundTimer = undefined;
     this.frame = 0;
     this.lastTick = Date.now();
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'));
     if (this.world && this.world.phase !== 'over' && ctx.getWebSockets().length) this.startTimer();
     else if (this.world?.phase !== 'over') this.world = null;
+    this.scheduleRound();
   }
 
   sockets() { return this.ctx.getWebSockets().filter((socket) => socket.readyState === 1); }
@@ -46,6 +49,26 @@ export class CatRoom extends DurableObject {
     return { type: 'state', lobby: GLOBAL_ROOM, players, queue: this.queue().map((player) => player.id), world: this.world };
   }
   sync() { this.broadcast(this.state()); }
+
+  startRound(mode, countdown = 5) {
+    const racers = this.queue().slice(0, 8);
+    if (!racers.length || (this.world && this.world.phase !== 'over')) return;
+    clearTimeout(this.nextRoundTimer); this.nextRoundTimer = undefined;
+    for (const socket of this.sockets()) {
+      const cat = socket.deserializeAttachment();
+      if (racers.some((racer) => racer.id === cat.id)) { cat.queued = 0; socket.serializeAttachment(cat); }
+    }
+    this.world = createGame(mode, racers.map(({ id, name }, index) => ({ id, name, color: COLORS[index] })), crypto.getRandomValues(new Uint32Array(1))[0], countdown);
+    this.checkpoint(); this.sync(); this.startTimer();
+  }
+  scheduleRound() {
+    if (this.nextRoundTimer !== undefined || (this.world && this.world.phase !== 'over') || !this.queue().some((cat) => cat.auto)) return;
+    this.nextRoundTimer = setTimeout(() => {
+      this.nextRoundTimer = undefined;
+      const next = this.queue().find((cat) => cat.auto);
+      if (next) this.startRound(next.mode || 'flappy');
+    }, 4000);
+  }
 
   async fetch(request) {
     if (!this.room || (this.room.code !== GLOBAL_ROOM && this.room.expires < Date.now())) return json({ error: 'The global cat lobby is taking a nap.' }, 404);
@@ -82,24 +105,32 @@ export class CatRoom extends DurableObject {
     if (now - player.window >= 1000) { player.window = now; player.messages = 0; }
     if (++player.messages > 45) return socket.close(1008, 'Slow those paws');
     socket.serializeAttachment(player);
-    if (message.type === 'queue' && typeof message.join === 'boolean') {
+    if (message.type === 'play' && MODES.includes(message.mode)) {
+      if (this.world?.phase !== 'over' && this.world?.players.some((cat) => cat.id === player.id && cat.alive)) return;
+      player.queued ||= Math.max(now, ...this.queue().map((cat) => cat.queued + 1));
+      player.auto = true; player.mode = message.mode;
+      socket.serializeAttachment(player);
+      if (!this.world || this.world.phase === 'over') this.startRound(this.queue().find((cat) => cat.auto)?.mode || message.mode);
+      else if (this.world.phase === 'countdown' && this.world.countdown > 0.5 && this.world.players.length < 8) {
+        // A friend can join the current countdown in one tap. FIFO still applies.
+        for (const entrant of this.queue().filter((cat) => !this.world.players.some((racer) => racer.id === cat.id)).slice(0, 8 - this.world.players.length)) {
+          const avatar = createGame(this.world.mode, [{ id: entrant.id, name: entrant.name, color: COLORS[this.world.players.length] }], 1).players[0];
+          this.world.players.push(avatar);
+          const connection = this.sockets().find((candidate) => candidate.deserializeAttachment()?.id === entrant.id);
+          entrant.queued = 0; connection?.serializeAttachment(entrant);
+        }
+        this.checkpoint(); this.sync();
+      } else this.sync();
+    } else if (message.type === 'queue' && typeof message.join === 'boolean') {
       // Opt in each round; spectators and solo players are never drafted.
       if (message.join === Boolean(player.queued)) return;
       player.queued = message.join ? Math.max(now, ...this.queue().map((cat) => cat.queued + 1)) : 0;
+      player.auto = false;
       socket.serializeAttachment(player);
       this.sync();
     } else if (message.type === 'start') {
       if (!player.queued || !MODES.includes(message.mode) || (this.world && this.world.phase !== 'over')) return;
-      const racers = this.queue().slice(0, 8);
-      if (!racers.length) return;
-      for (const racer of racers) {
-        const socketForRacer = this.sockets().find((candidate) => candidate.deserializeAttachment()?.id === racer.id);
-        if (socketForRacer) { racer.queued = 0; socketForRacer.serializeAttachment(racer); }
-      }
-      this.world = createGame(message.mode, racers.map(({ id, name }, index) => ({ id, name, color: COLORS[index] })), crypto.getRandomValues(new Uint32Array(1))[0], 3);
-      this.checkpoint();
-      this.sync();
-      this.startTimer();
+      this.startRound(message.mode, 3);
     } else if (message.type === 'retire') {
       const avatar = this.world?.players.find((cat) => cat.id === player.id);
       if (avatar) avatar.alive = false;
@@ -140,7 +171,7 @@ export class CatRoom extends DurableObject {
       // Roster changes have their own messages; do not resend 256 names per tick.
       if (this.frame % 2 === 0 || this.world.phase === 'over') this.broadcast({ type: 'frame', world: this.world });
       if (this.frame % 20 === 0 || this.world.phase === 'over') this.checkpoint();
-      if (this.world.phase === 'over') this.stopTimer();
+      if (this.world.phase === 'over') { this.stopTimer(); this.scheduleRound(); }
     }, 50);
   }
   stopTimer() { clearInterval(this.timer); this.timer = undefined; }
@@ -151,7 +182,7 @@ export class CatRoom extends DurableObject {
     const player = socket.deserializeAttachment();
     const avatar = this.world?.players.find((item) => item.id === player?.id);
     if (avatar) avatar.alive = false;
-    if (!this.sockets().length) { this.stopTimer(); this.world = null; this.checkpoint(); }
+    if (!this.sockets().length) { clearTimeout(this.nextRoundTimer); this.nextRoundTimer = undefined; this.stopTimer(); this.world = null; this.checkpoint(); }
     else this.sync();
   }
   webSocketError(socket) { socket.close(1011, 'Cat connection lost'); this.webSocketClose(socket); }

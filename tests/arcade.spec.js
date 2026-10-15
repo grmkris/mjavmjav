@@ -30,7 +30,7 @@ test.beforeEach(async ({ context }) => {
   });
 });
 
-test('solo controls, pause, rematch, and personal best work in both games', async ({ page }) => {
+test('solo controls, pause, rematch, and personal best work in all three games', async ({ page }) => {
   await page.goto('/#arcade');
   await page.locator('#practice-solo').click();
   await page.locator('#pause-game').click();
@@ -59,6 +59,14 @@ test('solo controls, pause, rematch, and personal best work in both games', asyn
   await page.locator('#practice-solo').click();
   await page.locator('[data-game="jump"]').click();
   await expect(page.locator('#best-score')).toHaveText(best);
+  await page.locator('[data-game="dodge"]').click();
+  await page.locator('#solo-start').click();
+  await expect(page.locator('#steer-controls')).toBeVisible();
+  await expect.poll(async () => Number(await page.locator('#current-score').textContent())).toBeGreaterThan(5);
+  await page.locator('#pause-game').click();
+  const score = await page.locator('#current-score').textContent();
+  await page.waitForTimeout(250);
+  await expect(page.locator('#current-score')).toHaveText(score);
 });
 
 async function connected(page) {
@@ -84,7 +92,7 @@ test('everyone auto-joins one lobby, shares sounds, opts into listening, and ech
     expect(await page.evaluate(() => window.roomState.lobby)).toBe('global');
     await expect(page.locator('#join-code, #create-room, #invite-link')).toHaveCount(0);
     expect(await guest.evaluate(() => window.audioStarts)).toBe(0);
-    await page.locator('[data-sound="honk"]').click();
+    await page.locator('[data-reaction="honk"]').click();
     await expect.poll(() => guest.evaluate((id) => window.reactions?.some((r) => r.id === id && r.sound === 'honk'), senderId)).toBe(true);
     await expect(guest.locator('#sound-stage-list')).toContainText('honk');
     expect(await guest.evaluate(() => window.audioStarts)).toBe(0);
@@ -115,49 +123,62 @@ test('everyone auto-joins one lobby, shares sounds, opts into listening, and ech
   } finally { await guest.close(); await late.close(); }
 });
 
-test('global races accept queued cats only, preserve spectators, and run both games without a host', async ({ page, context }) => {
+test('one tap starts all three games, admits friends during countdown, and leaves spectators alone', async ({ page, context }, testInfo) => {
   test.skip(Boolean(process.env.SITE_URL), 'Race sequencing is local-only: do not take over the live global game.');
-  test.setTimeout(60000);
+  test.setTimeout(90000);
   const guest = await context.newPage();
   const late = await context.newPage();
+  const errors = [];
+  for (const tab of [page, guest, late]) tab.on('pageerror', (error) => errors.push(error.message));
   try {
     await page.goto('/'); await connected(page);
     await guest.goto('/'); await connected(guest);
     await expect(page.locator('#room-count')).toHaveText('2 cats online');
-    // An unqueued spectator cannot start a race or submit their own score.
     await guest.evaluate(() => {
       window.roomSocket.send(JSON.stringify({ type: 'start', mode: 'jump' }));
       window.roomSocket.send(JSON.stringify({ type: 'score', score: 999999 }));
     });
     await page.waitForTimeout(250);
     expect(await page.evaluate(() => window.roomState.world)).toBeNull();
-    await page.locator('#room-queue').click();
-    await guest.locator('#room-queue').click();
-    await expect(guest.locator('#room-start')).toBeEnabled();
-    // The newest visitor can start; the oldest one has no special privileges.
-    await guest.locator('#room-start').click();
-    await expect.poll(() => page.evaluate(() => window.roomState.world?.phase)).toBe('countdown');
-    await late.goto('/'); await connected(late);
-    await expect(late.locator('#game-state')).toContainText('spectating');
-    expect(await late.evaluate(() => scrollY)).toBe(0);
-    expect(await late.evaluate(() => window.roomState.world.players.some((cat) => cat.id === window.catId))).toBe(false);
-    await expect(page.locator('#game-title')).toHaveText('outplayed by a vegetable.', { timeout: 10000 });
-    await expect(guest.locator('#game-title')).toHaveText('outplayed by a vegetable.');
-    expect(await page.evaluate(() => window.roomState.world.players.map((cat) => cat.score)))
-      .toEqual(await guest.evaluate(() => window.roomState.world.players.map((cat) => cat.score)));
-    await page.locator('#practice-solo').click();
-    await page.locator('#pause-game').click();
-    await guest.locator('[data-game="jump"]').click();
-    await guest.locator('#room-queue').click();
-    await late.locator('#room-queue').click();
-    await guest.locator('#room-start').click();
-    await expect.poll(() => late.evaluate(() => window.roomState.world?.mode)).toBe('jump');
-    await expect.poll(() => late.evaluate(() => window.roomState.world?.phase)).toBe('playing');
-    await expect(page.locator('#game-state')).toContainText('paused');
-    expect(await page.evaluate(() => window.roomState.world.players.some((cat) => cat.id === window.catId))).toBe(false);
-    await guest.locator('#steer-right').dispatchEvent('pointerdown', { pointerId: 1 });
-    await expect.poll(() => guest.evaluate(() => window.roomState.world.players.find((cat) => cat.id === window.catId)?.x)).toBeGreaterThan(240);
-    await guest.locator('#steer-right').dispatchEvent('pointerup', { pointerId: 1 });
+    for (const mode of ['flappy', 'jump', 'dodge']) {
+      await guest.locator(`[data-game="${mode}"]`).click();
+      await guest.locator('#overlay-play').click();
+      await expect.poll(() => guest.evaluate(() => window.roomState.world?.phase)).toBe('countdown');
+      await expect.poll(() => guest.evaluate(() => window.roomState.world?.mode)).toBe(mode);
+      await expect(page.locator('#quick-play')).toHaveText('join this round');
+      await page.locator('#quick-play').click();
+      await expect.poll(() => page.evaluate(() => window.roomState.world?.players.filter((cat) => cat.id === window.catId).length)).toBe(1);
+      await expect(page.locator('#quick-play')).toBeDisabled();
+      if (mode === 'flappy') {
+        await late.goto('/'); await connected(late);
+        await expect(late.locator('#game-state')).toContainText('spectating');
+        expect(await late.evaluate(() => scrollY)).toBe(0);
+        expect(await late.evaluate(() => window.roomState.world.players.some((cat) => cat.id === window.catId))).toBe(false);
+      }
+      await expect.poll(() => page.evaluate(() => window.roomState.world?.phase), { timeout: 10000, intervals: [50] }).toBe('playing');
+      if (mode === 'dodge') await guest.waitForTimeout(900);
+      await guest.locator('.game-machine').screenshot({ path: testInfo.outputPath(`${mode}-playing.png`) });
+      if (mode !== 'flappy') {
+        // Real touch/mouse input with capture, released after visible movement.
+        const control = await guest.locator('#steer-right').boundingBox();
+        await guest.mouse.move(control.x + control.width / 2, control.y + control.height / 2);
+        await guest.mouse.down();
+        await expect.poll(() => guest.evaluate(() => window.roomState.world.players.find((cat) => cat.id === window.catId)?.x)).toBeGreaterThan(240);
+        await guest.mouse.up();
+      }
+      // A solo spectator is never dragged into a new race.
+      if (mode === 'flappy') {
+        await late.locator('#practice-solo').click();
+        await late.locator('#pause-game').click();
+      }
+      await expect(late.locator('#game-state')).toContainText('paused');
+      for (const tab of [page, guest]) await tab.evaluate(() => window.roomSocket.send(JSON.stringify({ type: 'retire' })));
+      await expect.poll(() => page.evaluate(() => window.roomState.world.phase)).toBe('over');
+      await expect(guest.locator('#game-overlay')).toBeVisible();
+      expect(await page.evaluate(() => window.roomState.world.players.map((cat) => cat.score)))
+        .toEqual(await guest.evaluate(() => window.roomState.world.players.map((cat) => cat.score)));
+    }
+    expect(errors).toEqual([]);
   } finally { await guest.close(); await late.close(); }
 });
 
@@ -185,19 +206,17 @@ test('more than eight visitors connect, eight race, and the waiting cat gets the
       for (let i = 0; i < 10; i++) sockets.push(await open());
       const connected = state.players.length;
       for (let i = 0; i < 9; i++) {
-        sockets[i].send(JSON.stringify({ type: 'queue', join: true }));
-        await waitFor(() => state.queue.length === i + 1);
+        sockets[i].send(JSON.stringify({ type: 'play', mode: i === 8 ? 'dodge' : 'flappy' }));
+        await waitFor(() => i < 8 ? state.world?.players.length === i + 1 : state.queue.length === 1);
       }
-      sockets[0].send(JSON.stringify({ type: 'start', mode: 'flappy' }));
       await waitFor(() => state.world?.phase === 'countdown');
       const racers = state.world.players.length;
       const queue = [...state.queue];
       const spectatorsDrafted = state.world.players.some((p) => p.id === sockets[9].catId);
       const uniqueColors = new Set(state.world.players.map((p) => p.color)).size;
       await waitFor(() => state.world?.phase === 'over');
-      sockets[8].send(JSON.stringify({ type: 'start', mode: 'flappy' }));
       await waitFor(() => state.world?.phase === 'countdown');
-      return { connected, racers, queue, waiting: sockets[8].catId, spectatorsDrafted, uniqueColors, next: state.world.players.map((p) => p.id) };
+      return { connected, racers, queue, waiting: sockets[8].catId, spectatorsDrafted, uniqueColors, next: state.world.players.map((p) => p.id), mode: state.world.mode };
     } finally { for (const ws of sockets) ws.close(1000, 'Test complete'); }
   });
   expect(result.connected).toBe(11);
@@ -206,6 +225,7 @@ test('more than eight visitors connect, eight race, and the waiting cat gets the
   expect(result.spectatorsDrafted).toBe(false);
   expect(result.queue).toEqual([result.waiting]);
   expect(result.next).toEqual([result.waiting]);
+  expect(result.mode).toBe('dodge');
 });
 
 test('disconnects reconnect to the global lobby and APIs reject foreign origins and old rooms', async ({ page, request, baseURL }) => {
@@ -240,4 +260,30 @@ test('the global sound stage rate-limits spam and rejects malformed messages', a
     window.roomSocket.send('{not-cat-json');
   }));
   expect(closed).toBe(1008);
+});
+
+
+test('queued cats can cancel and roster nodes survive game frames', async ({ page, context }) => {
+  test.skip(Boolean(process.env.SITE_URL), 'Queue and game probes stay local.');
+  const guest = await context.newPage();
+  try {
+    await page.goto('/'); await connected(page);
+    await guest.goto('/'); const guestId = await connected(guest);
+    await page.locator('[data-game="jump"]').click();
+    await page.locator('#quick-play').click();
+    await expect.poll(() => page.evaluate(() => window.roomState.world?.phase), { timeout: 10000, intervals: [50] }).toBe('playing');
+    await page.evaluate(() => { window.rosterNode = document.querySelector('#room-roster li'); });
+    await page.waitForTimeout(150);
+    expect(await page.evaluate(() => window.rosterNode === document.querySelector('#room-roster li'))).toBe(true);
+    await guest.locator('#quick-play').click();
+    await expect(guest.locator('#quick-play')).toContainText('queued');
+    await expect(guest.locator('#queue-status')).toContainText('automatically');
+    await guest.locator('#room-queue').click();
+    await expect(guest.locator('#room-queue')).toBeHidden();
+    await expect.poll(() => page.evaluate((id) => window.roomState.queue.includes(id), guestId)).toBe(false);
+    await page.evaluate(() => window.roomSocket.send(JSON.stringify({ type: 'retire' })));
+    await expect.poll(() => page.evaluate(() => window.roomState.world?.phase)).toBe('over');
+    await page.waitForTimeout(4500);
+    expect(await page.evaluate(() => window.roomState.world.phase)).toBe('over');
+  } finally { await guest.close(); }
 });

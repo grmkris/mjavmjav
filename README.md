@@ -10,13 +10,19 @@ Switching away from the tab stops chaos and playing sounds.
 ## Cat arcade
 
 - **Flappy Mjav:** tap the game, tap Flap, or press Space to dodge cucumbers.
-- **Boing Boing:** bounce automatically; steer with arrows, A/D, or touch buttons.
+- **Boing Boing:** steer across narrower toast with arrows, A/D, or touch buttons.
+  Orange toast crumbles for each cat separately; the rising floor punishes camping.
+- **Honk Dodge:** steer away from falling geese. The flock gets faster and denser;
+  ten points count as one second survived.
+- The arcade opens first, with a nearly full-width phone arena and large thumb controls.
 - Solo games have pause/resume and personal bests saved in this browser.
 - Every visitor automatically joins **one global lobby**, on both domains. No room
   codes, invite screens, accounts, or host. Old room links now land here too.
-- Press **join next round**, then any queued cat can pick a game and launch it.
-  The first eight queued cats race after a three-second countdown; extra cats
-  keep their place for the next round. Spectators can watch and make sounds.
+- Press **play together** once to start a five-second countdown. Friends can
+  **join this round** until its final half-second, with up to eight cats per race.
+  During a race, **play next round** queues you automatically. Waiting cats launch
+  four seconds after the round ends; the oldest waiting cat picks the game.
+  **Leave queue** cancels your place. Spectators can watch and make sounds.
   Racers opt in again each round. Rounds end when all cats bonk or after 75 seconds.
 - **Practice solo** keeps you in the lobby and sound stage while you play locally.
   Solo play works without a network connection after the page loads.
@@ -38,6 +44,8 @@ Plain HTML/CSS/JS, an original SVG mascot, canvas games, and Cloudflare Worker
 static assets. One SQLite Durable Object named `global` coordinates `/api/room`
 WebSockets across both domains and hibernates between activity. The old private-room
 API is removed; existing private objects retain their one-hour cleanup alarm.
+The canvas skips painting while offscreen or hidden. Roster elements are reused
+between game snapshots; unchanged score/status labels avoid extra DOM writes.
 No framework, build step, analytics, or runtime requests to third-party services.
 All sounds require interaction; nothing starts playing on page load.
 
@@ -62,11 +70,13 @@ SITE_URL=https://mjavmjav.com heavy bun run test
 Use `bun run test`, not `bun test`: the tests use Playwright's runner.
 The browser suite covers desktop and 390px phone layouts, touch targets,
 asset loading, real audio playback, immediate mute, all ten keyboard shortcuts,
-both games, global rounds, FIFO race seats with eleven connected visitors,
+all three games, one-tap countdown entry, automatic FIFO seats with eleven visitors,
+queue cancellation, roster reuse across frames,
 shared sounds and explicit echoes, reconnects, rate limits, origin validation,
 chaos cancellation, reduced motion, and controls without Web Audio support.
 The local unit tests cover deterministic physics, countdowns, controls,
-cucumber collisions, platform landings, and the round time limit.
+cucumber and goose collisions, reachable platform gaps, per-cat crumbling toast,
+idle-player elimination, increasing dodge difficulty, and the round time limit.
 The live suite skips race/capacity/spam probes and suppresses soundboard-regression
 broadcasts. A small multi-client sound test still exercises real shared audio.
 These are browser checks; a physical iPhone has not been tested.

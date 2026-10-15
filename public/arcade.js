@@ -3,13 +3,14 @@ import { drawGame } from './game-render.js';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('game-canvas');
-const ctx = canvas.getContext('2d');
+const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
 const modeButtons = [...document.querySelectorAll('[data-game]')];
 const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-const modeNames = { flappy: 'Flappy Mjav', jump: 'Boing Boing' };
+const modeNames = { flappy: 'Flappy Mjav', jump: 'Boing Boing', dodge: 'Honk Dodge' };
 const instructions = {
   flappy: 'Tap the game or press Space to flap. Avoid the cucumbers. They know what you did.',
-  jump: 'Bounce automatically. Steer with ← →, A / D, or the big buttons. The floor is a suggestion.',
+  jump: 'Bounce automatically across smaller toast. Steer with ← →, A / D, or the big buttons before the floor catches up.',
+  dodge: 'Steer left and right. The geese fall faster every second. Do not become bread.',
 };
 let mode = 'flappy';
 let world = createGame(mode, [{ id: 'solo', name: 'You' }], 12345);
@@ -32,11 +33,18 @@ let lastNetworkInput = 0;
 let lastSnapshot = 0;
 let previousJumps = 0;
 let gameOverHandled = false;
+let rosterSignature = '';
+let arenaVisible = true;
+new IntersectionObserver(([entry]) => { arenaVisible = entry.isIntersecting; }).observe(canvas);
 
 let best = {};
 try { best = JSON.parse(localStorage.getItem('mjav-best') || '{}') || {}; } catch { best = {}; }
 
 function sound(kind) { window.dispatchEvent(new CustomEvent('cat:game-sound', { detail: { kind } })); }
+function setText(id, value) { const node = $(id); if (node.textContent !== value) node.textContent = value; }
+function setPlayState(text, disabled) {
+  for (const id of ['quick-play', 'overlay-play']) { $(id).disabled = disabled; setText(id, text); }
+}
 function send(data) { if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(data)); }
 function me() { return world?.players.find((player) => player.id === (sharedView ? selfId : 'solo')); }
 function active() { return running && !paused && world?.phase === 'playing' && me()?.alive; }
@@ -60,7 +68,7 @@ function updateMode(value) {
   $('game-instructions').textContent = instructions[mode];
   $('game-help').textContent = instructions[mode];
   $('flap-control').hidden = mode !== 'flappy';
-  $('steer-controls').hidden = mode !== 'jump';
+  $('steer-controls').hidden = !['jump', 'dodge'].includes(mode);
   $('best-score').textContent = String(best[mode] || 0);
 }
 
@@ -84,6 +92,8 @@ function startSolo() {
   $('game-overlay').hidden = true;
   $('pause-game').textContent = 'pause';
   $('game-state').textContent = 'solo cat';
+  direction = 0;
+  if (room) updateRoster();
   focusGame();
   sound('blep');
 }
@@ -97,8 +107,9 @@ function finish() {
   $('best-score').textContent = String(best[mode]);
   $('game-state').textContent = 'cat.exe has stopped';
   const winner = [...world.players].sort((a, b) => b.score - a.score || b.survived - a.survived)[0];
-  const title = mode === 'flappy' ? 'outplayed by a vegetable.' : 'gravity remains undefeated.';
-  showOverlay(title, sharedView ? `${winner.name} leads with ${winner.score}. Join the queue for another round.` : `${score} ${mode === 'flappy' ? 'cucumbers escaped' : 'metres of bad decisions'}. Your cat requests a rematch.`);
+  const title = mode === 'flappy' ? 'outplayed by a vegetable.' : mode === 'jump' ? 'gravity remains undefeated.' : 'the geese won.';
+  const soloScore = mode === 'dodge' ? `${(score / 10).toFixed(1)} seconds of goose denial` : `${score} ${mode === 'flappy' ? 'cucumbers escaped' : 'metres of bad decisions'}`;
+  showOverlay(title, sharedView ? `${winner.name} leads with ${winner.score} points. Tap play together for another round.` : `${soloScore}. Your cat requests a rematch.`);
   if (me()) sound('bonk');
 }
 
@@ -118,17 +129,17 @@ function render(time) {
     const steps = Math.max(1, Math.ceil(dt * 60));
     for (let i = 0; i < steps; i++) stepGame(world, dt / steps);
   }
-  if (sharedView && active() && mode === 'jump' && time - lastNetworkInput > 100) { send({ type: 'input', direction }); lastNetworkInput = time; }
+  if (sharedView && active() && ['jump', 'dodge'].includes(mode) && time - lastNetworkInput > 100) { send({ type: 'input', direction }); lastNetworkInput = time; }
   const player = me();
   if (player) {
-    $('current-score').textContent = String(player.score);
+    setText('current-score', String(player.score));
     recordBest();
     if (player.jumps > previousJumps && time - lastSound > 200) { sound('boing'); lastSound = time; }
     previousJumps = player.jumps;
-    if (sharedView && !player.alive && world.phase !== 'over') $('game-state').textContent = 'you bonked · spectating';
+    if (sharedView && !player.alive && world.phase !== 'over') setText('game-state', 'you bonked · spectating');
   }
   if (running && world.phase === 'over' && !sharedView) finish();
-  drawGame(ctx, world, sharedView ? selfId : 'solo', time, reduced.matches);
+  if (arenaVisible && !document.hidden) drawGame(ctx, world, sharedView ? selfId : 'solo', time, reduced.matches);
   requestAnimationFrame(render);
 }
 
@@ -139,7 +150,7 @@ modeButtons.forEach((button) => button.addEventListener('click', () => {
     world = createGame(mode, [{ id: 'solo', name: 'You' }], 12345);
     running = false; paused = false; gameOverHandled = false;
     showOverlay(modeNames[mode], instructions[mode]);
-  }
+  } else showLobby();
   if (room) updateRoster();
 }));
 $('solo-start').addEventListener('click', startSolo);
@@ -182,33 +193,39 @@ document.addEventListener('visibilitychange', () => {
 });
 
 function updateRoster() {
-  const fragment = document.createDocumentFragment();
   const race = room.world && room.world.phase !== 'over';
   const priority = [...room.players].sort((a, b) => (b.id === selfId) - (a.id === selfId));
+  // Reuse list nodes on world frames. Only membership/queue/round changes rebuild it.
+  const signature = JSON.stringify([priority, room.queue, Boolean(race), room.world?.round, room.world?.players.map(({ id, color }) => [id, color])]);
+  const rebuild = signature !== rosterSignature;
+  if (rebuild) { rosterSignature = signature; $('room-roster').replaceChildren(); }
+  let index = 0;
   for (const player of priority.slice(0, 12)) {
-    const row = document.createElement('li');
-    const label = document.createElement('span'); label.textContent = `${player.name}${player.id === selfId ? ' (you)' : ''}`;
-    const badge = document.createElement('i'); badge.setAttribute('aria-hidden', 'true');
-    const score = document.createElement('strong');
     const avatar = room.world?.players.find((p) => p.id === player.id);
-    badge.style.backgroundColor = race && avatar ? avatar.color : player.color;
+    let row = $('room-roster').children[index++];
+    if (rebuild) {
+      row = document.createElement('li');
+      const label = document.createElement('span'); label.textContent = `${player.name}${player.id === selfId ? ' (you)' : ''}`;
+      const badge = document.createElement('i'); badge.setAttribute('aria-hidden', 'true');
+      badge.style.backgroundColor = race && avatar ? avatar.color : player.color;
+      row.append(badge, label, document.createElement('strong'));
+      $('room-roster').append(row);
+    }
     const queued = room.queue.indexOf(player.id);
-    score.textContent = queued >= 0 ? `queue #${queued + 1}` : avatar && race ? `${avatar.score}${avatar.alive ? ' racing' : ' ☠'}` : 'loafing';
-    row.append(badge, label, score); fragment.append(row);
+    const text = queued >= 0 ? `queue #${queued + 1}` : avatar && race ? `${avatar.score}${avatar.alive ? ' racing' : ' ☠'}` : 'loafing';
+    if (row.lastChild.textContent !== text) row.lastChild.textContent = text;
   }
-  if (room.players.length > 12) {
-    const more = document.createElement('li'); more.textContent = `+ ${room.players.length - 12} more cats in the audience`; fragment.append(more);
+  if (rebuild && room.players.length > 12) {
+    const more = document.createElement('li'); more.textContent = `+ ${room.players.length - 12} more cats in the audience`; $('room-roster').append(more);
   }
-  $('room-roster').replaceChildren(fragment);
   const queued = room.queue.includes(selfId);
-  $('room-queue').disabled = false;
-  $('room-queue').textContent = queued ? `leave queue · #${room.queue.indexOf(selfId) + 1}` : 'join next round';
-  $('room-queue').setAttribute('aria-pressed', String(queued));
-  $('room-start').disabled = !queued || Boolean(race);
-  $('room-start').textContent = race ? 'global round in progress' : `launch ${modeNames[mode]} · ${Math.min(8, room.queue.length)}/8`;
+  const participant = race && room.world.players.some((p) => p.id === selfId && p.alive);
+  const canJoin = race && room.world.phase === 'countdown' && room.world.countdown > 0.5 && room.world.players.length < 8 && !room.world.players.some((p) => p.id === selfId);
+  $('room-queue').hidden = !queued;
+  setPlayState(queued ? `queued · #${room.queue.indexOf(selfId) + 1}` : sharedView && participant ? (room.world.phase === 'countdown' ? 'you’re in. get ready!' : 'you’re racing!') : canJoin ? 'join this round' : race ? 'play next round' : 'play together', Boolean(queued || (sharedView && participant)));
   for (const button of modeButtons) button.disabled = sharedView && Boolean(race);
-  $('room-count').textContent = `${room.players.length} ${room.players.length === 1 ? 'cat' : 'cats'} online`;
-  $('queue-status').textContent = `${room.queue.length} queued · 8 race seats · everybody else spectates`;
+  setText('room-count', `${room.players.length} ${room.players.length === 1 ? 'cat' : 'cats'} online`);
+  setText('queue-status', queued ? 'You’ll join the next countdown automatically.' : participant && sharedView ? `${room.world.players.length}/8 cats in this round. Good luck, tiny beast.` : race ? `${modeNames[room.world.mode]} is on. ${room.queue.length} waiting for the next round.` : `One global room. Up to 8 cats. Starts with one tap.`);
 }
 
 function showLobby() {
@@ -216,24 +233,25 @@ function showLobby() {
   world = createGame(mode, [], 12345);
   $('current-score').textContent = '0';
   $('game-state').textContent = room ? 'global cat lobby' : 'connecting to the cats';
-  showOverlay('one room. zero brain cells.', 'Join the queue to race everyone. Or practice solo while the cats do their thing.');
+  showOverlay(modeNames[mode], instructions[mode]);
 }
 
 function sharedWorld(next) {
   if (!sharedView) return;
   if (!next) { showLobby(); return; }
   const newRound = world.round !== next.round;
+  const joining = !me() && next.players.some((player) => player.id === selfId);
   world = next; lastSnapshot = performance.now(); running = true; paused = false;
   if (newRound || (world.phase !== 'over' && mode !== world.mode)) updateMode(world.mode);
   if (newRound) {
     previousJumps = 0; gameOverHandled = false;
-    // Only a cat that opted into this race gets pulled to the game.
-    if (me() && world.phase === 'countdown') focusGame();
   }
+  // Only a cat that opted into this race gets pulled to the game.
+  if ((newRound || joining) && me() && world.phase === 'countdown') { direction = 0; focusGame(); }
   if (world.phase === 'over') finish();
   else {
     $('game-overlay').hidden = true;
-    $('game-state').textContent = !me() ? 'front-row cat seat · spectating' : world.phase === 'countdown' ? 'synchronising brain cells' : 'global cat race';
+    setText('game-state', !me() ? 'spectating the cats' : !me().alive ? 'you bonked · spectating' : world.phase === 'countdown' ? 'get your paws ready' : 'global cat race');
   }
 }
 
@@ -287,8 +305,10 @@ function joinGlobal() {
     socket = undefined; connecting = false; room = undefined;
     current.close();
     $('room-count').textContent = 'reconnecting…';
-    $('room-queue').disabled = true; $('room-start').disabled = true;
+    $('room-queue').hidden = true;
+    setPlayState('reconnecting…', true);
     $('room-roster').replaceChildren();
+    rosterSignature = '';
     $('queue-status').textContent = 'Rejoin the race queue after reconnecting.';
     if (sharedView) showLobby();
     setMessage('Cat phone disconnected. Reconnecting automatically… Solo still works.');
@@ -328,12 +348,20 @@ function joinGlobal() {
   current.addEventListener('error', lost);
 }
 $('room-queue').addEventListener('click', () => {
-  if (!room) return;
-  const queued = room.queue.includes(selfId);
-  if (!sharedView) watchGlobal();
-  send({ type: 'queue', join: !queued });
+  send({ type: 'queue', join: false });
 });
-$('room-start').addEventListener('click', () => send({ type: 'start', mode }));
+$('quick-play').addEventListener('click', () => {
+  if (!room) return;
+  const selected = mode;
+  if (!sharedView) watchGlobal();
+  setPlayState('joining the cats…', true);
+  send({ type: 'play', mode: selected });
+  sound('blep');
+});
+$('overlay-play').addEventListener('click', () => $('quick-play').click());
+document.querySelectorAll('[data-reaction]').forEach((button) => button.addEventListener('click', () => {
+  window.dispatchEvent(new CustomEvent('cat:perform', { detail: { kind: button.dataset.reaction } }));
+}));
 $('watch-global').addEventListener('click', watchGlobal);
 $('room-audio').addEventListener('change', () => { roomAudio = $('room-audio').checked; if (roomAudio) sound('blep'); });
 window.addEventListener('cat:reaction', (event) => { if (room) send({ type: 'reaction', sound: event.detail.kind }); });
@@ -342,7 +370,7 @@ window.addEventListener('pagehide', () => { pageGone = true; clearTimeout(retryT
 window.addEventListener('pageshow', () => { pageGone = false; joinGlobal(); });
 
 updateMode(mode); showLobby(); $('pause-game').disabled = true;
-$('room-queue').disabled = true; $('room-start').disabled = true;
+setPlayState('connecting…', true);
 requestAnimationFrame(render);
 const url = new URL(location.href);
 if (url.searchParams.has('room')) { url.searchParams.delete('room'); history.replaceState(null, '', url); }
