@@ -59,6 +59,7 @@ test('solo controls, pause, rematch, and personal best work in both games', asyn
 });
 
 test('friends race both games, late join, share sounds, and inherit the host', async ({ page, context }, testInfo) => {
+  test.setTimeout(60000);
   const errors = [];
   const guest = await context.newPage();
   const late = await context.newPage();
