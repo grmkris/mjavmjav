@@ -26,6 +26,14 @@ test('page, self-hosted assets, touch targets and layout', async ({ page }, test
   await page.evaluate(() => document.fonts.ready);
   expect(await page.evaluate(() => document.fonts.check('800 16px "Bricolage Grotesque"'))).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  for (const angle of [0, 15, 30, 45, 60, 75, 90]) {
+    const fits = await page.locator('.orbit').evaluateAll((orbits, value) => {
+      for (const orbit of orbits) { orbit.style.animation = 'none'; orbit.style.transform = `rotate(${value}deg)`; }
+      return document.documentElement.scrollWidth <= innerWidth;
+    }, angle);
+    expect(fits, `orbit rotation ${angle} must stay inside the page`).toBe(true);
+  }
+  await page.locator('.orbit').evaluateAll((orbits) => { for (const orbit of orbits) orbit.removeAttribute('style'); });
   const dimensions = await page.locator('button:visible').evaluateAll((buttons) => buttons.map((button) => {
     const { width, height } = button.getBoundingClientRect();
     return { width, height };

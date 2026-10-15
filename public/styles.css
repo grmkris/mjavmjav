@@ -34,7 +34,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--acid); outline-
 .icon-button { min-inline-size: 3rem; min-block-size: 2.75rem; padding: .4rem .7rem; border: 1px solid color-mix(in oklch, var(--paper), transparent 70%); border-radius: 999px; background: transparent; color: var(--paper); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .72rem; letter-spacing: -.02em; }
 .icon-button:active { transform: scale(.96); }
 
-.hero { display: grid; grid-template-columns: minmax(18rem, .88fr) minmax(23rem, 1.12fr); align-items: center; gap: clamp(1rem, 4vw, 5rem); max-inline-size: 90rem; min-block-size: min(42rem, calc(100svh - 5rem)); margin-inline: auto; padding: clamp(2rem, 4vw, 4rem) clamp(1.25rem, 6vw, 7rem) clamp(3rem, 7vw, 7rem); }
+.hero { display: grid; grid-template-columns: minmax(18rem, .88fr) minmax(23rem, 1.12fr); align-items: center; gap: clamp(1rem, 4vw, 5rem); max-inline-size: 90rem; min-block-size: min(42rem, calc(100svh - 5rem)); margin-inline: auto; padding: clamp(2rem, 4vw, 4rem) clamp(1.25rem, 6vw, 7rem) clamp(3rem, 7vw, 7rem); overflow: clip; }
 .hero-copy { position: relative; z-index: 2; align-self: center; }
 .eyebrow { margin: 0 0 1.5rem; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .68rem; font-weight: 700; letter-spacing: .03em; text-transform: lowercase; }
 .eyebrow span { color: var(--acid); }
