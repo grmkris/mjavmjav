@@ -82,6 +82,18 @@
       "unchanged": false,
       "adaptation": "Made manual-only (disable-model-invocation: true). agents/openai.yaml disables implicit invocation in Codex.",
       "baseCommit": "0871daceb347e3c51693fbe9c77555468df7e410"
+    },
+    "durable-objects": {
+      "repository": "cloudflare/skills",
+      "commit": "0871daceb347e3c51693fbe9c77555468df7e410",
+      "path": "skills/durable-objects",
+      "license": "Apache-2.0",
+      "licenses": [
+        "LICENSE"
+      ],
+      "treeSha256": "57d6553178ac88801def139889b4932af574dbb3db0f7949f3b8bf45b3d7335d",
+      "localTreeSha256": "57d6553178ac88801def139889b4932af574dbb3db0f7949f3b8bf45b3d7335d",
+      "unchanged": true
     }
   }
 }

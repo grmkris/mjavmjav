@@ -2,9 +2,9 @@
 
 Master instructions. `CLAUDE.md` links to this file; edit `AGENTS.md`.
 
-This is a tiny, static Cloudflare Worker site for `mjavmjav.com`, a playful cat
-soundboard. Keep the project deliberately small: HTML, CSS, browser JavaScript,
-and an SVG mascot are the product.
+This is a playful cat soundboard and arcade for `mjavmjav.com`. Keep the project
+small: HTML, CSS, browser JavaScript, canvas games, and an SVG mascot. A Cloudflare
+Durable Object coordinates each multiplayer room; solo games stay in the browser.
 
 ## Stack and commands
 
@@ -38,5 +38,6 @@ and an SVG mascot are the product.
 Start with `frontend-design` for visual direction, `good-css` for layout and
 interaction CSS, `make-interfaces-feel-better` for polish, `mobile-native` for
 phone behavior, `animate` for the small amount of intentional motion, and
-`wrangler` for Cloudflare commands. Keep these skills in `.agents/skills` and run
+  `wrangler` for Cloudflare commands, and `durable-objects` for multiplayer rooms.
+  Keep these skills in `.agents/skills` and run
 repoagents checks after changes.
