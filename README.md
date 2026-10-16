@@ -14,6 +14,12 @@ Switching away from the tab stops chaos and playing sounds.
   Orange toast crumbles for each cat separately; the rising floor punishes camping.
 - **Honk Dodge:** steer away from falling geese. The flock gets faster and denser;
   ten points count as one second survived.
+- **Bonk Club:** a simultaneous-turn PvP catfight on a shared 6×6 map. Move one
+  tile (diagonals included) and aim a fish, or use a shield, within eight seconds.
+  Secret plans reveal together: fish hit their target and four adjacent tiles, including the thrower.
+  Three hearts, two shields, eight turns. Most hearts wins; hits break ties.
+  The global round waits for at least two humans (up to eight); **practice vs bots**
+  is explicitly solo. Missing a deadline leaves your cat exposed where it stood.
 - The arcade opens first, with a nearly full-width phone arena and large thumb controls.
 - Solo games have pause/resume and personal bests saved in this browser.
 - Every visitor automatically joins **one global lobby**, on both domains. No room
@@ -23,7 +29,8 @@ Switching away from the tab stops chaos and playing sounds.
   During a race, **play next round** queues you automatically. Waiting cats launch
   four seconds after the round ends; the oldest waiting cat picks the game.
   **Leave queue** cancels your place. Spectators can watch and make sounds.
-  Racers opt in again each round. Rounds end when all cats bonk or after 75 seconds.
+  Racers opt in again each round. Arcade races end when all cats bonk or after
+  75 seconds; Bonk Club ends with one survivor or after eight turns.
 - **Practice solo** keeps you in the lobby and sound stage while you play locally.
   Solo play works without a network connection after the page loads.
 - Every soundboard press appears on the **global yap stage**. Enable **hear the
@@ -70,13 +77,18 @@ SITE_URL=https://mjavmjav.com heavy bun run test
 Use `bun run test`, not `bun test`: the tests use Playwright's runner.
 The browser suite covers desktop and 390px phone layouts, touch targets,
 asset loading, real audio playback, immediate mute, all ten keyboard shortcuts,
-all three games, one-tap countdown entry, automatic FIFO seats with eleven visitors,
+all four games, private PvP plans, simultaneous fish hits, two-human matchmaking,
+solo bot practice, one-tap countdown entry, automatic FIFO seats with eleven visitors,
 queue cancellation, roster reuse across frames,
 shared sounds and explicit echoes, reconnects, rate limits, origin validation,
 chaos cancellation, reduced motion, and controls without Web Audio support.
 The local unit tests cover deterministic physics, countdowns, controls,
 cucumber and goose collisions, reachable platform gaps, per-cat crumbling toast,
 idle-player elimination, increasing dodge difficulty, and the round time limit.
+Bonk tests cover hidden plans, invalid and duplicate moves, shields, evasion,
+mutual knockouts, unique spawns, bot practice, and the eight-turn limit.
+Bonk snapshots broadcast twice per second and immediately on turn changes;
+plan acknowledgements are immediate and only the server resolves combat.
 The live suite skips race/capacity/spam probes and suppresses soundboard-regression
 broadcasts. A small multi-client sound test still exercises real shared audio.
 These are browser checks; a physical iPhone has not been tested.

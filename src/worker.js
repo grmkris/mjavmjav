@@ -1,5 +1,5 @@
 import { DurableObject } from 'cloudflare:workers';
-import { createGame, applyInput, stepGame, MODES, COLORS, ROOM_SOUNDS } from '../public/game-core.js';
+import { createGame, applyInput, applyPlan, publicGame, stepGame, MODES, COLORS, ROOM_SOUNDS } from '../public/game-core.js';
 
 const GLOBAL_ROOM = 'global';
 const MAX_CONNECTIONS = 256;
@@ -17,7 +17,7 @@ export class CatRoom extends DurableObject {
       this.room = { id: 1, code: GLOBAL_ROOM, expires, snapshot: null };
     }
     this.world = this.room?.snapshot ? JSON.parse(this.room.snapshot) : null;
-    if (this.world?.version !== 2) this.world = null;
+    if (![2, 3].includes(this.world?.version)) this.world = null;
     ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS stage (id INTEGER PRIMARY KEY, events TEXT NOT NULL)');
     this.soundStage = JSON.parse(ctx.storage.sql.exec('SELECT events FROM stage WHERE id = 1').toArray()[0]?.events || '[]');
     this.timer = undefined;
@@ -46,13 +46,16 @@ export class CatRoom extends DurableObject {
   }
   state() {
     const players = this.roster().map(({ id, name, color }) => ({ id, name, color }));
-    return { type: 'state', lobby: GLOBAL_ROOM, players, queue: this.queue().map((player) => player.id), world: this.world };
+    const queue = this.queue();
+    const waitingMode = (!this.world || this.world.phase === 'over') && queue.find((cat) => cat.auto)?.mode === 'bonk' && queue.length < 2 ? 'bonk' : null;
+    return { type: 'state', lobby: GLOBAL_ROOM, players, queue: queue.map((player) => player.id), world: publicGame(this.world), waitingMode };
   }
   sync() { this.broadcast(this.state()); }
 
   startRound(mode, countdown = 5) {
     const racers = this.queue().slice(0, 8);
     if (!racers.length || (this.world && this.world.phase !== 'over')) return;
+    if (mode === 'bonk' && racers.length < 2) { this.sync(); return; }
     clearTimeout(this.nextRoundTimer); this.nextRoundTimer = undefined;
     for (const socket of this.sockets()) {
       const cat = socket.deserializeAttachment();
@@ -63,6 +66,7 @@ export class CatRoom extends DurableObject {
   }
   scheduleRound() {
     if (this.nextRoundTimer !== undefined || (this.world && this.world.phase !== 'over') || !this.queue().some((cat) => cat.auto)) return;
+    if (this.queue().find((cat) => cat.auto)?.mode === 'bonk' && this.queue().length < 2) { this.sync(); return; }
     this.nextRoundTimer = setTimeout(() => {
       this.nextRoundTimer = undefined;
       const next = this.queue().find((cat) => cat.auto);
@@ -114,7 +118,7 @@ export class CatRoom extends DurableObject {
       else if (this.world.phase === 'countdown' && this.world.countdown > 0.5 && this.world.players.length < 8) {
         // A friend can join the current countdown in one tap. FIFO still applies.
         for (const entrant of this.queue().filter((cat) => !this.world.players.some((racer) => racer.id === cat.id)).slice(0, 8 - this.world.players.length)) {
-          const avatar = createGame(this.world.mode, [{ id: entrant.id, name: entrant.name, color: COLORS[this.world.players.length] }], 1).players[0];
+          const avatar = createGame(this.world.mode, [...this.world.players, { id: entrant.id, name: entrant.name, color: COLORS[this.world.players.length] }], 1).players.at(-1);
           this.world.players.push(avatar);
           const connection = this.sockets().find((candidate) => candidate.deserializeAttachment()?.id === entrant.id);
           entrant.queued = 0; connection?.serializeAttachment(entrant);
@@ -134,6 +138,11 @@ export class CatRoom extends DurableObject {
     } else if (message.type === 'retire') {
       const avatar = this.world?.players.find((cat) => cat.id === player.id);
       if (avatar) avatar.alive = false;
+    } else if (message.type === 'plan') {
+      const accepted = applyPlan(this.world, player.id, message);
+      if (accepted) this.checkpoint();
+      socket.send(JSON.stringify({ type: 'plan-ack', round: message.round, turn: message.turn, accepted }));
+      if (accepted) this.sync();
     } else if (message.type === 'input') {
       if (typeof message.flap !== 'boolean' && ![-1, 0, 1].includes(message.direction)) return;
       applyInput(this.world, player.id, { flap: message.flap === true, direction: message.direction });
@@ -165,12 +174,16 @@ export class CatRoom extends DurableObject {
       }
       const elapsed = Math.min((now - this.lastTick) / 1000, 0.25);
       this.lastTick = now;
+      const previousTurn = this.world.turn;
+      const previousTurnPhase = this.world.turnPhase;
       const steps = Math.max(1, Math.round(elapsed * 60));
       for (let i = 0; i < steps; i++) stepGame(this.world, elapsed / steps);
       this.frame += 1;
       // Roster changes have their own messages; do not resend 256 names per tick.
-      if (this.frame % 2 === 0 || this.world.phase === 'over') this.broadcast({ type: 'frame', world: this.world });
-      if (this.frame % 20 === 0 || this.world.phase === 'over') this.checkpoint();
+      const transitioned = previousTurn !== this.world.turn || previousTurnPhase !== this.world.turnPhase;
+      if (this.frame % 20 === 0 || this.world.phase === 'over' || transitioned) this.checkpoint();
+      // Turn-based play needs countdown updates, not ten full maps per second.
+      if (this.frame % (this.world.mode === 'bonk' ? 10 : 2) === 0 || transitioned || this.world.phase === 'over') this.broadcast({ type: 'frame', world: publicGame(this.world) });
       if (this.world.phase === 'over') { this.stopTimer(); this.scheduleRound(); }
     }, 50);
   }
