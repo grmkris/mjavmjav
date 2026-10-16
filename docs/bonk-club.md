@@ -62,3 +62,27 @@ crowds require separate verification.
 
 Cloudflare references: [WebSocket lifecycle](https://developers.cloudflare.com/durable-objects/best-practices/websockets/)
 and [Workers deployment permissions](https://developers.cloudflare.com/workers/authorization/workers/).
+
+## Verification and deployment — 2026-10-16
+
+- `bun run check`: **17 passed**, zero failures; six JavaScript syntax checks and
+  repoagents passed.
+- Local full browser run: **33 passed**, one timing-dependent Bonk test failed
+  when a reveal expired between assertions. The test now retains server reveal
+  messages and submits concurrent plans without competing browser focus.
+- `PLAYWRIGHT_EXECUTABLE_PATH=/home/kristjan/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome heavy bun run test tests/bonk.spec.js --output test-results/bonk-final`:
+  **4 passed**, zero failures, on desktop and 390px touch emulation. This covers
+  map/keyboard controls, pause/resume, bot practice, waiting/cancel/join,
+  spectators, private plans, a 600ms delayed submission, simultaneous damage,
+  shields, and winners. The 30 existing regression cases passed in the full run.
+- Reviewed desktop and 390px planning screenshots, desktop reveal screenshot,
+  and the four-game phone opening screen. Map tiles meet the 44px minimum.
+- `bunx wrangler deploy --dry-run`: passed with the existing Durable Object and
+  asset bindings.
+- Source commits: `a5b3abe`, `fb3c212`, `fc4012c`, `98def6d`, pushed to `main`.
+- `bun run deploy`: version `5d745ea3-833a-4e1d-aec1-04ec492933e4`, both custom
+  domains. Browser-like HTTP requests return 200 with Bonk Club on the page;
+  all five changed script/style asset hashes match local source on both domains.
+
+**Interface verdict: Approve within the reviewed Chromium scope.** Physical
+phones, Safari, real cross-continent latency, and load testing remain unverified.
