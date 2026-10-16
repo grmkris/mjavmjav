@@ -137,3 +137,102 @@ test('goose difficulty increases while old hazards are removed', () => {
   assert.equal(late.hazards.length, 1);
   assert.ok(late.players[0].score >= 600);
 });
+
+// Bonk Club resolves choices at a shared deadline, independent of input order.
+import { applyPlan, publicGame } from '../public/game-core.js';
+const planFor = (world, move, target) => ({ round: world.round, turn: world.turn, move, target });
+function advance(world, seconds) { for (let i = 0; i < Math.ceil(seconds * 60); i++) stepGame(world, 1 / 60); }
+
+test('Bonk plans are private, immutable after acknowledgement, and survive JSON recovery', () => {
+  const world = createGame('bonk', roster, 9);
+  assert.equal(applyPlan(world, 'a', planFor(world, 1, 35)), true);
+  assert.equal(applyPlan(world, 'a', planFor(world, 0, null)), false);
+  const recovered = JSON.parse(JSON.stringify(world));
+  assert.deepEqual(recovered.plans.a, { move: 1, target: 35 });
+  assert.equal(Object.hasOwn(publicGame(recovered), 'plans'), false);
+  assert.equal(publicGame(recovered).players[0].ready, true);
+  advance(recovered, 8.1);
+  assert.equal(recovered.players[0].cell, 1);
+  assert.equal(recovered.players[1].hp, 2);
+});
+
+test('Bonk waits for the full turn and resolves movement and attacks simultaneously', () => {
+  const first = createGame('bonk', roster, 9);
+  const second = createGame('bonk', roster, 9);
+  for (const [world, ids] of [[first, ['a', 'b']], [second, ['b', 'a']]]) {
+    for (const id of ids) assert.equal(applyPlan(world, id, planFor(world, id === 'a' ? 1 : 34, id === 'a' ? 35 : 0)), true);
+    advance(world, 4);
+    assert.deepEqual(world.players.map((p) => p.hp), [3, 3]);
+    advance(world, 4.1);
+    assert.deepEqual(world.players.map((p) => p.hp), [2, 2]);
+    assert.deepEqual(world.players.map((p) => p.cell), [1, 34]);
+    assert.deepEqual(world.players.map((p) => p.score), [1, 1]);
+  }
+  assert.deepEqual(first, second);
+});
+
+test('Bonk rejects teleporting, wrong turns, expired rounds, invalid targets and spectator plans', () => {
+  const world = createGame('bonk', roster, 9);
+  for (const plan of [planFor(world, 35, 0), planFor(world, 0, 36), planFor(world, 0, 1.5), { ...planFor(world, 0, 35), turn: 0 }, { ...planFor(world, 0, 35), round: 'old' }]) assert.equal(applyPlan(world, 'a', plan), false);
+  assert.equal(applyPlan(world, 'spectator', planFor(world, 0, 35)), false);
+  advance(world, 8.1);
+  assert.equal(applyPlan(world, 'a', planFor(world, 0, 35)), false);
+  assert.deepEqual(world.players.map((p) => p.cell), [0, 35]);
+  assert.deepEqual(world.players.map((p) => p.shields), [2, 2], 'missed turns do not spend shields');
+});
+
+test('Bonk shields block fish twice, and moving clear of a blast evades it', () => {
+  const world = createGame('bonk', roster, 9);
+  for (let i = 0; i < 2; i++) {
+    assert.equal(applyPlan(world, 'a', planFor(world, 0, 35)), true);
+    assert.equal(applyPlan(world, 'b', planFor(world, 35, null)), true);
+    advance(world, 10.1);
+    assert.equal(world.players[1].hp, 3);
+  }
+  assert.equal(world.players[1].shields, 0);
+  assert.equal(applyPlan(world, 'b', planFor(world, 35, null)), false);
+  world.players[1].cell = 28;
+  assert.equal(applyPlan(world, 'a', planFor(world, 0, 35)), true);
+  assert.equal(applyPlan(world, 'b', planFor(world, 22, 0)), true);
+  advance(world, 8.1);
+  assert.equal(world.players[1].hp, 3);
+});
+
+test('Bonk mutual knockouts are a draw and do not depend on roster order', () => {
+  for (const players of [roster, [...roster].reverse()]) {
+    const world = createGame('bonk', players, 9);
+    for (const player of world.players) player.hp = 1;
+    for (const player of world.players) applyPlan(world, player.id, planFor(world, player.cell, world.players.find((p) => p.id !== player.id).cell));
+    advance(world, 10.1);
+    assert.equal(world.phase, 'over');
+    assert.deepEqual(world.winners, []);
+    assert.deepEqual(world.players.map((p) => p.score), [1, 1]);
+  }
+});
+
+test('Bonk has unique spawns for eight cats, finite rounds and honest bot practice', () => {
+  const world = createGame('bonk', Array.from({ length: 8 }, (_, i) => ({ id: String(i), name: `Cat ${i}` })), 9);
+  assert.equal(new Set(world.players.map((p) => p.cell)).size, 8);
+  assert.equal(world.players.some((p) => p.bot), false);
+  advance(world, 82);
+  assert.equal(world.phase, 'over');
+  assert.equal(world.turn, 8);
+  assert.equal(world.winners.length, 8);
+  const practice = createGame('bonk', [{ id: 'solo', name: 'You' }, { id: 'bot', name: 'Bot Fish', bot: true }], 9);
+  stepGame(practice, 1 / 60);
+  assert.equal(practice.players[0].ready, false);
+  assert.equal(practice.players[1].ready, true);
+});
+
+
+test('Bonk diagonal movement gives counterplay to fish aimed at the current tile', () => {
+  const world = createGame('bonk', roster, 9);
+  assert.equal(applyPlan(world, 'a', planFor(world, 7, 35)), true);
+  assert.equal(applyPlan(world, 'b', planFor(world, 28, 0)), true);
+  advance(world, 8.1);
+  assert.deepEqual(world.players.map((cat) => cat.hp), [3, 3]);
+  assert.deepEqual(world.players.map((cat) => cat.cell), [7, 28]);
+  const wrapped = createGame('bonk', roster, 9);
+  wrapped.players[0].cell = 5;
+  assert.equal(applyPlan(wrapped, 'a', planFor(wrapped, 6, 35)), false);
+});
