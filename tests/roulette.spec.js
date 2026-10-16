@@ -6,7 +6,7 @@ const localOnly = () => test.skip(Boolean(process.env.SITE_URL), 'Pairing and OA
 
 test('MCP discovery, resource and transport expose the portable app without joining', async ({ request, baseURL }) => {
   const init = await rpc(request, baseURL, 'initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'test', version: '1' } });
-  expect(init.status()).toBe(200); expect((await init.json()).result.serverInfo.name).toBe('mjavmjav-gpt-roulette');
+  expect(init.status()).toBe(401); expect(init.headers()['www-authenticate']).toContain('oauth-protected-resource/mcp');
   const listed = await (await rpc(request, baseURL, 'tools/list')).json();
   expect(listed.result.tools).toHaveLength(10);
   expect(listed.result.tools.find((t) => t.name === 'roulette_open')._meta.ui.resourceUri).toBe('ui://mjavmjav/roulette-v2.html');
@@ -34,6 +34,7 @@ test('OAuth binds code to PKCE, client, resource and browser; rotates refresh an
   expect((await request.post('/oauth/token', { form })).status()).toBe(400);
   const sdk = new Client({ name: 'roulette-acceptance', version: '1' });
   await sdk.connect(new StreamableHTTPClientTransport(new URL(`${baseURL}/mcp`), { requestInit: { headers: { Authorization: `Bearer ${auth.access_token}` } } }));
+  expect(sdk.getServerVersion().name).toBe('mjavmjav-gpt-roulette');
   expect((await sdk.listTools()).tools).toHaveLength(10);
   expect((await sdk.callTool({ name: 'roulette_open', arguments: {} })).structuredContent.status).toBe('idle');
   await sdk.close();

@@ -70,7 +70,7 @@ export async function serveMcp(request, env) {
     let parsedBody;
     if (request.method === 'POST') {
       try { parsedBody = JSON.parse(await boundedBody(request)); } catch { return reply({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Invalid or oversized JSON.' } }, 400); }
-      if (!identity && parsedBody?.method === 'tools/call') return reply({ error: 'Connect your cat first.' }, 401, { 'WWW-Authenticate': `Bearer resource_metadata="${baseURL(request)}/.well-known/oauth-protected-resource/mcp", scope="roulette"` });
+      if (!identity && ['initialize', 'tools/call'].includes(parsedBody?.method)) return reply({ error: 'Connect your cat first.' }, 401, { 'WWW-Authenticate': `Bearer resource_metadata="${baseURL(request)}/.well-known/oauth-protected-resource/mcp", scope="roulette"` });
     }
     const response = await transport.handleRequest(request, { parsedBody });
     const headers = new Headers(response.headers); headers.set('Cache-Control', 'no-store');

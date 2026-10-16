@@ -43,6 +43,8 @@ and allow `roulette_open` and `roulette_status`. The open tool declares the
 OpenAI MCP Extensions global entrypoint, so Goblin can pin the connection in its
 sidebar and open it in its own thread without a model call. Other tools retain
 their individual host grants. Opening the app never joins matchmaking.
+MCP initialization requests OAuth before reporting the connection ready. Public
+tool/resource inspection remains available; every tool call requires identity.
 
 Goblin currently runs MCP Apps in opaque sandbox frames, which prevent browser
 camera capture. Use **Open camera in browser** after a pawshake; Goblin presents
