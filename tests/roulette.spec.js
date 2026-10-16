@@ -1,4 +1,5 @@
 import { randomBytes, createHash } from 'node:crypto';
+import { createServer } from 'node:http';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { test, expect, request as requests } from '@playwright/test';
@@ -52,26 +53,34 @@ test('OAuth binds code to PKCE, client, resource and browser; rotates refresh an
 
 test('browser consent preserves same-origin checks and completes a real form submission', async ({ page, baseURL }) => {
   localOnly();
-  const client = await register(page.request, baseURL);
-  const verifier = randomBytes(48).toString('base64url'), challenge = createHash('sha256').update(verifier).digest('base64url');
-  const params = { client_id: client, redirect_uri: `${baseURL}/oauth-test-callback`, response_type: 'code', code_challenge_method: 'S256', code_challenge: challenge, resource: `${baseURL}/mcp`, scope: 'roulette', state: 'browser-state' };
-  await page.route(`${baseURL}/oauth-test-callback?**`, (route) => route.fulfill({ contentType: 'text/html', body: 'Connected' }));
-  await page.goto(`${baseURL}/oauth/authorize?${new URLSearchParams(params)}`);
-  const flow = await page.locator('[name="flow"]').inputValue();
-  for (const origin of ['null', 'https://evil.invalid']) {
-    expect((await page.request.post(`${baseURL}/oauth/authorize`, { headers: { Origin: origin }, form: { flow, decision: 'allow' }, maxRedirects: 0 })).status()).toBe(400);
-  }
-  const submitted = page.waitForRequest((request) => request.method() === 'POST' && new URL(request.url()).pathname === '/oauth/authorize');
-  await page.getByRole('button', { name: 'Connect this cat', exact: true }).click();
-  expect((await submitted).headers().origin).toBe(baseURL);
-  await page.waitForURL(`${baseURL}/oauth-test-callback?**`);
-  const redirect = new URL(page.url());
-  expect(redirect.searchParams.get('state')).toBe('browser-state'); expect(redirect.searchParams.get('iss')).toBe(baseURL);
-  const token = await page.request.post(`${baseURL}/oauth/token`, { form: tokenForm(baseURL, { code: redirect.searchParams.get('code'), verifier, client }) });
-  expect(token.status()).toBe(200);
-  const auth = await token.json();
-  expect((await call(page.request, baseURL, auth.access_token, 'roulette_open')).structuredContent.status).toBe('idle');
+  let callbackReferrer;
+  const clientServer = createServer((request, response) => { callbackReferrer = request.headers.referer; response.end('Connected'); });
+  await new Promise((resolve) => clientServer.listen(0, '127.0.0.1', resolve));
+  const callback = `http://127.0.0.1:${clientServer.address().port}/oauth/callback`;
+  try {
+    const registration = await page.request.post(`${baseURL}/oauth/register`, { data: { redirect_uris: [callback], token_endpoint_auth_method: 'none' } });
+    expect(registration.status()).toBe(201); const client = (await registration.json()).client_id;
+    const verifier = randomBytes(48).toString('base64url'), challenge = createHash('sha256').update(verifier).digest('base64url');
+    const params = { client_id: client, redirect_uri: callback, response_type: 'code', code_challenge_method: 'S256', code_challenge: challenge, resource: `${baseURL}/mcp`, scope: 'roulette', state: 'browser-state' };
+    await page.goto(`${baseURL}/oauth/authorize?${new URLSearchParams(params)}`);
+    const flow = await page.locator('[name="flow"]').inputValue();
+    for (const origin of ['null', 'https://evil.invalid']) {
+      expect((await page.request.post(`${baseURL}/oauth/authorize`, { headers: { Origin: origin }, form: { flow, decision: 'allow' }, maxRedirects: 0 })).status()).toBe(400);
+    }
+    const submitted = page.waitForRequest((request) => request.method() === 'POST' && new URL(request.url()).pathname === '/oauth/authorize');
+    await page.getByRole('button', { name: 'Connect this cat', exact: true }).click();
+    expect((await submitted).headers().origin).toBe(baseURL);
+    await page.waitForURL(`${callback}?**`, { timeout: 8000 });
+    expect(callbackReferrer).toBeUndefined();
+    const redirect = new URL(page.url());
+    expect(redirect.searchParams.get('state')).toBe('browser-state'); expect(redirect.searchParams.get('iss')).toBe(baseURL);
+    const token = await page.request.post(`${baseURL}/oauth/token`, { form: { ...tokenForm(baseURL, { code: redirect.searchParams.get('code'), verifier, client }), redirect_uri: callback } });
+    expect(token.status()).toBe(200);
+    const auth = await token.json();
+    expect((await call(page.request, baseURL, auth.access_token, 'roulette_open')).structuredContent.status).toBe('idle');
+  } finally { await new Promise((resolve) => clientServer.close(resolve)); }
 });
+
 
 test('two authenticated MCP pairs handshake, chat, play and stay isolated', async ({ request, baseURL }) => {
   localOnly();
