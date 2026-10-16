@@ -78,3 +78,14 @@ footer { padding-block-end: env(safe-area-inset-bottom, 0px); }
 .shell[data-phase="active"] h1 br { display: none; }
 .shell[data-phase="active"] > .lede { display: none; }
 .shell[data-phase="active"] .brand { margin-block-end: .3rem; }
+.camera-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; margin-block-start: 1rem; }
+.camera-tile { position: relative; margin: 0; aspect-ratio: 3 / 4; overflow: clip; border-radius: .8rem; background: var(--violet); outline: 1px solid oklch(1 0 none / .15); outline-offset: -1px; }
+.camera-tile video { inline-size: 100%; block-size: 100%; object-fit: cover; }
+.camera-tile video[data-camera="local"] { transform: scaleX(-1); }
+.camera-placeholder { position: absolute; inset: 0; display: grid; place-items: center; font-size: clamp(2.5rem, 12vw, 5rem); font-weight: 800; color: var(--pink); }
+.camera-tile:first-child .camera-placeholder { color: var(--acid); }
+.camera-tile figcaption { position: absolute; inset-inline: 0; inset-block-end: 0; padding: .6rem; background: oklch(0 0 none / .75); color: oklch(1 0 none); font-size: .8rem; overflow-wrap: anywhere; }
+.camera-status { min-block-size: 2.8em; }
+.camera-external { margin-block-start: .7rem; }
+.camera-panel .actions > button { flex: 1 1 auto; }
+@media (min-width: 35rem) { .camera-tile { aspect-ratio: 4 / 3; } }

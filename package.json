@@ -6,11 +6,12 @@
   "description": "Mjav mjav: a cat soundboard and multiplayer arcade for mjavmjav.com.",
   "license": "MIT",
   "scripts": {
-    "check": "node --check public/app.js && node --check public/arcade.js && node --check public/bonk-ui.js && node --check public/game-core.js && node --check public/game-render.js && node --check src/worker.js && node --check src/roulette-auth.js && node --check src/roulette-mcp.js && node --check src/roulette.js && node --check public/roulette.js && node --test --experimental-test-isolation=none tests/game-core.test.js tests/roulette-core.test.js && bun run agents:check",
+    "check": "node --check public/app.js && node --check public/arcade.js && node --check public/bonk-ui.js && node --check public/game-core.js && node --check public/game-render.js && node --check src/worker.js && node --check src/roulette-auth.js && node --check src/roulette-mcp.js && node --check src/roulette.js && node --check public/roulette.js && node --check public/roulette-video.js && node --check public/roulette-camera.js && node --check src/roulette-video.js && node --test --experimental-test-isolation=none tests/game-core.test.js tests/roulette-core.test.js tests/roulette-video.test.js && bun run agents:check",
     "agents:check": "bunx repoagents@1 check",
     "dev": "wrangler dev",
     "test": "playwright test",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "verify:camera:live": "node scripts/verify-camera-live.js --live"
   },
   "devDependencies": {
     "wrangler": "4.151.0",

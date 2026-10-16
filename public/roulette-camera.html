@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#171229"><title>Loaf cam · mjav mjav</title><link rel="icon" href="/cat.svg" type="image/svg+xml"><link rel="stylesheet" href="/roulette.css"></head>
+<body><main class="shell">
+  <a class="brand" href="/roulette">mjav mjav :3</a>
+  <section class="panel camera-panel" id="camera" aria-labelledby="camera-title">
+    <h1 id="camera-title">loaf cam.</h1>
+    <p class="hint">Same cat connection, bigger whiskers. Keep your ChatGPT conversation open for games and yaps.</p>
+    <div class="camera-grid">
+      <figure class="camera-tile"><video data-camera="local" autoplay muted playsinline aria-label="Your camera preview"></video><span class="camera-placeholder" data-camera="local-empty" aria-hidden="true">:3</span><figcaption data-camera="local-label">you · camera off</figcaption></figure>
+      <figure class="camera-tile"><video data-camera="remote" autoplay muted playsinline aria-label="Other cat’s camera"></video><span class="camera-placeholder" data-camera="remote-empty" aria-hidden="true">:?</span><figcaption data-camera="remote-label">other cat · camera off</figcaption></figure>
+    </div>
+    <p class="hint camera-status" data-camera="status" role="status">Cameras are off. No recording. Agents do not see or hear this call.</p>
+    <div class="actions"><button class="pink" data-camera="preview">preview camera</button><button class="primary" data-camera="share" hidden>share camera</button><button class="ghost" data-camera="stop" hidden>stop camera</button><button class="ghost" data-camera="mic" aria-pressed="false" hidden>enable mic</button><button class="ghost" data-camera="sound" aria-pressed="false" hidden>turn sound on</button></div>
+    <button class="camera-external ghost" data-camera="external" hidden>open camera in browser</button>
+  </section>
+</main><script type="module" src="/roulette-camera.js"></script></body>
+</html>

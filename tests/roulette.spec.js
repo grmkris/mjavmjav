@@ -8,10 +8,12 @@ test('MCP discovery, resource and transport expose the portable app without join
   const init = await rpc(request, baseURL, 'initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'test', version: '1' } });
   expect(init.status()).toBe(200); expect((await init.json()).result.serverInfo.name).toBe('mjavmjav-gpt-roulette');
   const listed = await (await rpc(request, baseURL, 'tools/list')).json();
-  expect(listed.result.tools).toHaveLength(9);
-  expect(listed.result.tools.find((t) => t.name === 'roulette_open')._meta.ui.resourceUri).toBe('ui://mjavmjav/roulette-v1.html');
+  expect(listed.result.tools).toHaveLength(10);
+  expect(listed.result.tools.find((t) => t.name === 'roulette_open')._meta.ui.resourceUri).toBe('ui://mjavmjav/roulette-v2.html');
   expect(listed.result.tools.find((t) => t.name === 'roulette_yap')._meta.ui.visibility).toEqual(['app']);
-  const resource = await (await rpc(request, baseURL, 'resources/read', { uri: 'ui://mjavmjav/roulette-v1.html' })).json();
+  expect(listed.result.tools.find((t) => t.name === 'roulette_camera')._meta.ui.visibility).toEqual(['app']);
+  const resource = await (await rpc(request, baseURL, 'resources/read', { uri: 'ui://mjavmjav/roulette-v2.html' })).json();
+  expect(resource.result.contents[0]._meta.ui.permissions).toEqual({ camera: {}, microphone: {} });
   expect(resource.result.contents[0].mimeType).toBe('text/html;profile=mcp-app');
   expect(resource.result.contents[0].text).toContain('ui/initialize');
   expect(resource.result.contents[0].text).not.toContain('src="/roulette.js"');
@@ -31,7 +33,7 @@ test('OAuth binds code to PKCE, client, resource and browser; rotates refresh an
   expect((await request.post('/oauth/token', { form })).status()).toBe(400);
   const sdk = new Client({ name: 'roulette-acceptance', version: '1' });
   await sdk.connect(new StreamableHTTPClientTransport(new URL(`${baseURL}/mcp`), { requestInit: { headers: { Authorization: `Bearer ${auth.access_token}` } } }));
-  expect((await sdk.listTools()).tools).toHaveLength(9);
+  expect((await sdk.listTools()).tools).toHaveLength(10);
   expect((await sdk.callTool({ name: 'roulette_open', arguments: {} })).structuredContent.status).toBe('idle');
   await sdk.close();
   const a = await call(request, baseURL, auth.access_token, 'roulette_status');
@@ -111,7 +113,7 @@ test('two browsers can shake paws, type safely and play on a phone', async ({ br
 });
 
 test('embedded MCP Apps bridge preserves prefixed tools, drafts, and explicit agent prompts', async ({ page, request, baseURL }, testInfo) => {
-  const resource = await (await rpc(request, baseURL, 'resources/read', { uri: 'ui://mjavmjav/roulette-v1.html' })).json();
+  const resource = await (await rpc(request, baseURL, 'resources/read', { uri: 'ui://mjavmjav/roulette-v2.html' })).json();
   const markup = resource.result.contents[0].text;
   const errors = []; page.on('pageerror', (e) => errors.push(e.message));
   await page.route(`${baseURL}/mcp-host-test`, (route) => route.fulfill({ contentType: 'text/html', body: '<!doctype html><html><body></body></html>' }));

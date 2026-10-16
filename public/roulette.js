@@ -1,9 +1,24 @@
+import { CameraCall } from './roulette-video.js';
 const $ = (id) => document.getElementById(id);
 const embedded = window.parent !== window;
 let state, busy = false, pollBusy = false, ready = false, stopped = false, rpcId = 0, prefix = '', lastFailure;
 let messageStamp = '', parentOrigin = '*', generation = 0;
 const pending = new Map();
 const toolNames = { status: 'roulette_status', join: 'roulette_join', accept: 'roulette_accept', leave: 'roulette_leave', say: 'roulette_yap', game: 'roulette_game', move: 'roulette_move' };
+const camera = new CameraCall({ root: $('camera'), prepare: async (sessionId) => {
+  if (state?.status !== 'active') throw new Error('Shake paws before opening a camera connection.');
+  const args = { matchId: state.match.id, sessionId };
+  if (embedded) {
+    const result = await rpc('tools/call', { name: prefix + 'roulette_camera', arguments: args });
+    if (result?.isError || !result?._meta?.camera) throw new Error(result?.content?.[0]?.text || 'The host did not return camera access. Reopen Roulette.');
+    return result._meta.camera;
+  }
+  const response = await fetch('/api/roulette-camera/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(args), signal: AbortSignal.timeout(15_000) });
+  const result = await response.json(); if (!response.ok) throw new Error(result.error || 'Camera setup failed.'); return result;
+}, openExternal: embedded ? async (url) => {
+  const result = await rpc('ui/open-link', { url });
+  if (result?.isError) throw new Error('The host could not open the camera. Allow external links and try again.');
+} : null });
 function rpc(method, params) {
   return new Promise((resolve, reject) => {
     const id = ++rpcId;
@@ -65,7 +80,7 @@ function update(next) {
   if (!next?.me || !['idle', 'waiting', 'handshake', 'active', 'closed'].includes(next.status)) return;
   if (state?.match?.id === next.match?.id && state?.match?.revision > next.match?.revision) return;
   if (state?.match && state.match.id !== next.match?.id) { $('yap').value = ''; lastFailure = null; $('retry').hidden = true; }
-  state = next; render();
+  state = next; camera.setMatch(state); render();
 }
 function renderControls() {
   if (!state) return;
@@ -139,7 +154,7 @@ $('join').addEventListener('click', async () => {
   await act('join');
 });
 $('accept').addEventListener('click', () => act('accept'));
-$('leave').addEventListener('click', () => act('leave'));
+$('leave').addEventListener('click', () => { camera.stop('Camera off.'); act('leave'); });
 $('start').addEventListener('click', () => act('game'));
 $('composer').addEventListener('submit', (event) => { event.preventDefault(); if ($('yap').value.trim()) act('say', { text: $('yap').value.trim() }); });
 $('retry').addEventListener('click', () => { if (lastFailure) act(lastFailure.action, {}, lastFailure.args); });
@@ -155,7 +170,7 @@ async function init() {
   try {
     if (embedded) {
       const result = await rpc('ui/initialize', { appInfo: { name: 'mjavmjav-roulette', version: '0.2.0' }, appCapabilities: {}, protocolVersion: '2026-01-26' });
-      hostContext(result.hostContext); notify('ui/notifications/initialized', {});
+      hostContext(result.hostContext); camera.hostPermissions(result.hostCapabilities); notify('ui/notifications/initialized', {});
       new ResizeObserver(() => notify('ui/notifications/size-changed', { height: document.documentElement.scrollHeight })).observe(document.body);
     }
     ready = true; await poll();

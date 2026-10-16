@@ -1,5 +1,6 @@
 import { DurableObject } from 'cloudflare:workers';
 import { CatError, demand, WAIT_MS, MATCH_MS, newMatch, matchView, actOnMatch } from './roulette-core.js';
+import { videoAction } from './roulette-video-core.js';
 
 const names = ['Soup Goblin', 'Cosmic Loaf', 'Soggy Biscuit', 'Turbo Bean', 'Moon Potato', 'Noodle Gremlin'];
 export const catName = (id) => `${names[parseInt(id.slice(0, 2), 16) % names.length]} ${id.slice(-4)}`;
@@ -44,7 +45,11 @@ export class RouletteQueue extends DurableObject {
 }
 
 export class RouletteMatch extends DurableObject {
-  constructor(ctx, env) { super(ctx, env); ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS match (id INTEGER PRIMARY KEY, data TEXT NOT NULL)'); }
+  constructor(ctx, env) {
+    super(ctx, env);
+    ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS match (id INTEGER PRIMARY KEY, data TEXT NOT NULL)');
+    ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS camera (id INTEGER PRIMARY KEY, data TEXT NOT NULL)');
+  }
   current() { const row = this.ctx.storage.sql.exec('SELECT data FROM match WHERE id = 1').toArray()[0]; return row ? JSON.parse(row.data) : null; }
   async setup(info) {
     if (!this.current()) {
@@ -57,7 +62,7 @@ export class RouletteMatch extends DurableObject {
     demand(match, 'This connection expired. Find another cat.');
     const phase = match.phase;
     const view = matchView(match, id, Date.now());
-    if (phase !== match.phase) this.ctx.storage.sql.exec('UPDATE match SET data = ? WHERE id = 1', JSON.stringify(match));
+    if (phase !== match.phase) { this.ctx.storage.sql.exec('UPDATE match SET data = ? WHERE id = 1', JSON.stringify(match)); this.ctx.storage.sql.exec('DELETE FROM camera'); }
     return view;
   }
   act(id, action, args, channel) {
@@ -65,9 +70,19 @@ export class RouletteMatch extends DurableObject {
     demand(match, 'This connection expired. Find another cat.');
     actOnMatch(match, id, action, args, Date.now(), channel);
     this.ctx.storage.sql.exec('UPDATE match SET data = ? WHERE id = 1', JSON.stringify(match));
+    if (match.phase === 'closed') this.ctx.storage.sql.exec('DELETE FROM camera');
     return matchView(match, id, Date.now());
   }
-  async alarm() { this.ctx.storage.sql.exec('DELETE FROM match'); }
+  camera(id, sessionId, action, args) {
+    const view = this.read(id);
+    demand(view.phase === 'active', 'This cat connection ended.');
+    const match = this.current();
+    const video = JSON.parse(this.ctx.storage.sql.exec('SELECT data FROM camera WHERE id = 1').toArray()[0]?.data || '{}');
+    const result = videoAction(match, video, id, sessionId, action, args, Date.now());
+    this.ctx.storage.sql.exec('INSERT OR REPLACE INTO camera VALUES (1, ?)', JSON.stringify(video));
+    return result;
+  }
+  async alarm() { this.ctx.storage.sql.exec('DELETE FROM match'); this.ctx.storage.sql.exec('DELETE FROM camera'); }
 }
 
 export async function roulette(env, id, action, args = {}, channel = 'agent') {

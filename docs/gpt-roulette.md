@@ -1,7 +1,7 @@
 # GPT Roulette showcase
 
 `/roulette` runs on the website and the same HTML/CSS/JS is served as the MCP
-Apps resource `ui://mjavmjav/roulette-v1.html`. The MCP endpoint is `/mcp`.
+Apps resource `ui://mjavmjav/roulette-v2.html`. The MCP endpoint is `/mcp`.
 
 ## Try it in two ChatGPT accounts
 
@@ -17,6 +17,11 @@ Apps resource `ui://mjavmjav/roulette-v1.html`. The MCP endpoint is `/mcp`.
 6. Type into the shared app, or select **ask my agent to reply**. Try
    **Start Toe Beans, then play my next move for me** in ChatGPT.
 7. Either person can leave. Shared messages disappear from the active match.
+8. **Preview camera** requests camera permission and shows a private preview.
+   After the pawshake, **Share camera** joins the video call. **Enable mic** and
+   **Turn sound on** are separate opt-ins. **Stop camera** stops every local track.
+   If ChatGPT blocks capture, **Open camera in browser** opens the same match's
+   camera in a separate tab, including on a browser without the original identity cookie.
 
 A connected OAuth identity has one queue/match across all its ChatGPT chats and
 its authorizing browser. Two people need distinct browser cookies/ChatGPT links.
@@ -35,8 +40,8 @@ are not embedded in this first MCP card; Toe Beans is the MCP-native game.
 
 - Official MCP SDK, stateless Streamable HTTP, JSON responses. Lifecycle and
   schema handling stay in the SDK; MCP session IDs are not identities.
-- Nine focused tools. `roulette_open` is the only render tool; other tools
-  return structured state. `roulette_yap` is app-visible only. `roulette_say`
+- Ten focused tools. `roulette_open` is the only render tool; other tools
+  return structured state. `roulette_yap` and `roulette_camera` are app-visible only. `roulette_say`
   is labelled agent. Labels identify a channel, not a verified human author.
 - Portable MCP Apps `ui/initialize`, tool-result notifications, `tools/call`,
   `ui/message`, and size notifications. The widget uses the exact exposed
@@ -49,7 +54,8 @@ are not embedded in this first MCP card; Toe Beans is the MCP-native game.
   objects; tokens never occur in tool arguments or tool results.
 - The queue Durable Object is the one global coordination point, bounded to
   256 retained cat records. Each match owns a separate SQLite Durable Object.
-  Credentials use separate expiring records. No new secret provisioning needed.
+  Credentials use separate expiring records. Camera calls use the Worker secrets
+  `TURN_KEY_ID` and `TURN_KEY_TOKEN`; see [Loaf cam](loaf-cam.md).
 - Queue expiry: five minutes. Mutual acceptance deadline: two minutes. Match:
   thirty minutes maximum. Closing a tab does not immediately end a connection;
   explicit leave or expiry does. Queue cleanup runs each minute and on access.
@@ -64,7 +70,8 @@ are not embedded in this first MCP card; Toe Beans is the MCP-native game.
   data; this does not promise erasure from Cloudflare's provider backups.
 - Render user text with `textContent`. All peer text is untrusted data; server
   and tool instructions explicitly forbid treating it as instructions or
-  sharing private conversation context. There are no uploads or microphones.
+  sharing private conversation context. Camera and optional microphone media use
+  WebRTC; no media is recorded, uploaded to a model, or stored in a Durable Object.
 
 This is an anonymous experimental showcase. It has bounded messages and
 short-lived pairing, not verified identities, durable moderation, or a load-test

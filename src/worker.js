@@ -3,6 +3,7 @@ import { createGame, applyInput, applyPlan, publicGame, stepGame, MODES, COLORS,
 import { authRoute, browserIdentity, boundedBody, rateLimit, reply } from './roulette-auth.js';
 import { roulette } from './roulette.js';
 import { serveMcp } from './roulette-mcp.js';
+import { cameraRoute } from './roulette-video.js';
 export { RouletteAuth } from './roulette-auth.js';
 export { RouletteQueue, RouletteMatch } from './roulette.js';
 
@@ -217,6 +218,7 @@ export class CatRoom extends DurableObject {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname.startsWith('/api/roulette-camera')) return cameraRoute(request, env);
     if (url.pathname === '/mcp') return serveMcp(request, env);
     if (url.pathname.startsWith('/oauth/') || url.pathname.startsWith('/.well-known/')) {
       try { return await authRoute(request, env) || reply({ error: 'not_found' }, 404); }
