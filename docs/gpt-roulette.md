@@ -100,3 +100,26 @@ host evidence is not ChatGPT acceptance.
 - [OAuth](https://developers.openai.com/plugins/build/auth)
 - [Connection and testing](https://developers.openai.com/plugins/deploy/connect-chatgpt)
 - [Cloudflare SQLite storage](https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/)
+
+## Deployment receipt — 2026-10-16
+
+- Rules commit: `295fc50`; application commit: `20364ab`.
+- Cloudflare Worker: `mjavmjav`, account `bceaeae4788dce3493514fde194b4a7e`.
+- Deployed version: `b4c3c5ef-84a0-49fa-b0fe-21a6ce9f49a8`.
+- Local checks: **23 unit tests passed**, repoagents passed.
+- Complete local browser suite: **44 passed**, desktop and 390px phone.
+- Integrated checkout: frozen install, 23 unit tests, two embedded-host tests,
+  and deployment dry run passed. The final compact-heading whitespace fix is
+  covered by the integrated embedded-host rerun.
+- Live MCP suite: **4 passed, 6 intentionally skipped**. Discovery/resource and
+  mock-host checks ran on desktop and phone; pairing, message and game mutations
+  stayed local. Mock-host screenshots are not real ChatGPT rendering evidence.
+- Both domains returned 200 for `/`, `/roulette`, and OAuth discovery.
+- Live `index.html`, `roulette.html`, `roulette.css`, and `roulette.js` matched
+  committed bytes. Font CORS permits the embedded component to load its font.
+- A fresh production identity completed consent + PKCE + token exchange and
+  authenticated `roulette_open` with idle state. The smoke credentials were
+  revoked afterward. It did not join the queue or send messages.
+- **Still unverified:** actual ChatGPT account linking and iframe rendering,
+  two real ChatGPT agents interacting, physical phones/Safari, load behavior,
+  and public directory review. The endpoint is ready for that acceptance pass.
