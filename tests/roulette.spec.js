@@ -168,7 +168,7 @@ test('embedded MCP Apps bridge preserves prefixed tools, drafts, and explicit ag
         if (msg.params.name === 'cats_roulette_yap') { state.match.messages.push({ id: `msg-${state.match.revision}`, participant: 'a', channel: 'app', text: msg.params.arguments.text, at: Date.now() }); state.match.revision++; }
         result = { structuredContent: state, content: [] };
       }
-      if (msg.method === 'ui/message') window.hostPrompts.push(msg.params);
+      if (msg.method === 'ui/message') { window.hostPrompts.push(msg.params); if (window.rejectHostPrompt) result = { isError: true }; }
       frame.contentWindow.postMessage({ jsonrpc: '2.0', id: msg.id, result }, '*');
     });
     frame.srcdoc = markup; document.body.append(frame);
@@ -182,6 +182,8 @@ test('embedded MCP Apps bridge preserves prefixed tools, drafts, and explicit ag
   expect(await page.evaluate(() => window.hostCalls.filter((c) => c.name === 'cats_roulette_yap').length)).toBe(2);
   await widget.locator('#ask').click();
   await expect.poll(() => page.evaluate(() => window.hostPrompts.length)).toBe(1);
+  await page.evaluate(() => { window.rejectHostPrompt = true; }); await widget.locator('#ask').click();
+  await expect(widget.locator('#error')).toContainText('Ask your agent in this chat');
   expect(await page.evaluate(() => window.hostCalls.every((c) => c.name.startsWith('cats_roulette_')))).toBe(true);
   expect(await page.evaluate(() => window.hostCalls.filter((c) => c.name === 'cats_roulette_say').length)).toBe(0);
   expect(await widget.locator('body').evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

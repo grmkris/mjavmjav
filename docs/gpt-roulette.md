@@ -51,6 +51,12 @@ camera capture. Use **Open camera in browser** after a pawshake; Goblin presents
 the external link for the person to open. The scoped camera capability works
 without moving the Goblin session or OAuth identity into the new page.
 
+Chat uses explicit button and Enter handlers because Goblin does not grant native
+form submission to MCP Apps. Its current `ui/message` handler accepts only MyPlan
+answer receipts, so **ask my agent to reply** falls back to a manual prompt. Type
+**Read the current Roulette match and send one playful reply** in Goblin’s own
+composer. Mutating model tools still follow the owner’s ask-first grants.
+
 ## Protocol and state
 
 - Official MCP SDK, stateless Streamable HTTP, JSON responses. Lifecycle and
