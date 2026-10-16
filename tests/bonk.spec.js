@@ -36,15 +36,15 @@ async function connect(page) {
 }
 const tile = (page, cell) => page.locator(`#bonk-map [data-cell="${cell}"]`);
 
-async function plan(page, move, target) {
-  await page.locator('#bonk-move').click();
-  await tile(page, move).click();
-  if (target === null) await page.locator('#bonk-shield').click();
-  else {
-    await page.locator('#bonk-throw').click();
-    await tile(page, target).click();
-  }
-  await page.locator('#bonk-lock').click();
+async function submitPlan(page, move, target, turn) {
+  // UI input is exercised in bot practice. Drive the multiplayer protocol directly
+  // so two browser tabs do not compete for focus during an eight-second deadline.
+  await page.evaluate(({ move, target, turn }) => {
+    const world = window.roomState.world;
+    if (world.turn !== turn || world.turnPhase !== 'plan') throw new Error('Missed the test planning window');
+    window.roomSocket.send(JSON.stringify({ type: 'plan', round: world.round, turn, move, target }));
+  }, { move, target, turn });
+  await expect.poll(() => page.evaluate((turn) => window.planAcks?.some((ack) => ack.accepted && ack.turn === turn), turn)).toBe(true);
   await expect(page.locator('#bonk-lock')).toHaveText('plan locked ✓');
 }
 
@@ -121,7 +121,7 @@ test('Bonk waits for a rival, keeps delayed plans private, and resolves human co
     await expect(spectator.locator('#bonk-plan')).toContainText('play next round');
     // A deliberately delayed client still has the same whole turn to plan.
     await page.evaluate(() => { window.planDelay = 600; });
-    await Promise.all([plan(page, 1, 35), plan(guest, 34, 0)]);
+    await Promise.all([submitPlan(page, 1, 35, 1), submitPlan(guest, 34, 0, 1)]);
     expect(await page.evaluate(() => window.planAcks.some((ack) => ack.accepted && ack.turn === 1))).toBe(true);
     expect(await guest.evaluate(() => window.planAcks.some((ack) => ack.accepted && ack.turn === 1))).toBe(true);
     await page.locator('.game-viewport').scrollIntoViewIfNeeded();
@@ -133,7 +133,7 @@ test('Bonk waits for a rival, keeps delayed plans private, and resolves human co
     await expect.poll(() => guest.evaluate(() => window.roomState.world.players.map((cat) => cat.hp))).toEqual([2, 2]);
     await page.screenshot({ path: testInfo.outputPath('bonk-pvp-reveal.png') });
     await expect.poll(() => page.evaluate(() => window.roomState.world.turn), { timeout: 5000 }).toBe(2);
-    await Promise.all([plan(page, 2, null), plan(guest, 34, 2)]);
+    await Promise.all([submitPlan(page, 2, null, 2), submitPlan(guest, 34, 2, 2)]);
     await expect.poll(() => page.evaluate(() => Boolean(window.bonkReveals?.[2])), { timeout: 10000, intervals: [100] }).toBe(true);
     const shielded = await page.evaluate(() => window.bonkReveals[2]);
     expect(shielded.players[0].hp).toBe(2);
