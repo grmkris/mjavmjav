@@ -104,6 +104,11 @@ Sources:
   camera/microphone permissions, and the bundled camera implementation.
 - `TURN_KEY_ID` and `TURN_KEY_TOKEN` remain configured after deployment; only
   their names and binding types were inspected.
+- Final postdeployment gate: **28 unit tests passed**, repoagents passed.
+  `SITE_URL=https://mjavmjav.com bun run test tests/roulette.spec.js tests/roulette-video.spec.js`
+  completed with **4 passed, 14 intentionally skipped**, zero failures. The
+  production discovery/resource and mock-host checks ran on desktop and phone;
+  OAuth mutation, pairing, and media-call tests remained local-only.
 - Public matchmaking, messages, and media calls were not exercised during
   deployment verification. Local media fixtures use direct loopback WebRTC,
   so they do not prove production TURN transport.
