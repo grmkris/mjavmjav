@@ -84,3 +84,28 @@ Sources:
 - [ChatGPT UI](https://developers.openai.com/plugins/build/chatgpt-ui)
 - [Cloudflare TURN credentials](https://developers.cloudflare.com/realtime/turn/generate-credentials/)
 - [Cloudflare TURN privacy](https://developers.cloudflare.com/realtime/turn/faq/)
+
+## Deployment receipt — 2026-10-16
+
+- Signaling core: `c5e3f79`; camera application: `189ffff`, published on `main`.
+- Worker `mjavmjav`, account `bceaeae4788dce3493514fde194b4a7e`.
+- Version `e89a7833-f8c8-4bfa-b7ca-968b656f964d` serves 100% of traffic on
+  `mjavmjav.com` and `www.mjavmjav.com`; the deployment status was read back.
+- Local predeployment checks: **28 unit tests passed**, repoagents passed,
+  **52 browser tests passed** across desktop and 390px phone. The browser checks
+  include decoded video and optional audio in both directions, track cleanup,
+  fallback links, and denied/permitted iframe camera policies.
+- Deployment dry run passed before publishing. Production packaged 20 static
+  files and uploaded six changed camera/UI assets.
+- Seven public pages/scripts on each domain returned 200 and matched local
+  SHA-256 hashes: homepage, Roulette HTML/CSS/JS, camera module, and fallback HTML/JS.
+- Both domains returned valid OAuth discovery. Live MCP reads confirmed ten
+  tools, app-only `roulette_camera`, resource `ui://mjavmjav/roulette-v2.html`,
+  camera/microphone permissions, and the bundled camera implementation.
+- `TURN_KEY_ID` and `TURN_KEY_TOKEN` remain configured after deployment; only
+  their names and binding types were inspected.
+- Public matchmaking, messages, and media calls were not exercised during
+  deployment verification. Local media fixtures use direct loopback WebRTC,
+  so they do not prove production TURN transport.
+- Actual ChatGPT linking, camera permissions/rendering, production relayed media,
+  and physical/mobile Safari devices still need a two-person acceptance run.
