@@ -1,5 +1,10 @@
 import { DurableObject } from 'cloudflare:workers';
 import { createGame, applyInput, applyPlan, publicGame, stepGame, MODES, COLORS, ROOM_SOUNDS } from '../public/game-core.js';
+import { authRoute, browserIdentity, boundedBody, rateLimit, reply } from './roulette-auth.js';
+import { roulette } from './roulette.js';
+import { serveMcp } from './roulette-mcp.js';
+export { RouletteAuth } from './roulette-auth.js';
+export { RouletteQueue, RouletteMatch } from './roulette.js';
 
 const GLOBAL_ROOM = 'global';
 const MAX_CONNECTIONS = 256;
@@ -212,6 +217,25 @@ export class CatRoom extends DurableObject {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === '/mcp') return serveMcp(request, env);
+    if (url.pathname.startsWith('/oauth/') || url.pathname.startsWith('/.well-known/')) {
+      try { return await authRoute(request, env) || reply({ error: 'not_found' }, 404); }
+      catch { return reply({ error: 'invalid_request' }, 400); }
+    }
+    if (url.pathname === '/api/roulette' && request.method === 'POST') {
+      if (request.headers.get('Origin') !== url.origin) return reply({ error: 'Join from this website.' }, 403);
+      try {
+        const { action, ...args } = JSON.parse(await boundedBody(request));
+        if (!['status', 'join', 'accept', 'leave', 'say', 'game', 'move'].includes(action)) return reply({ error: 'Unknown cat action.' }, 400);
+        let identity = await browserIdentity(request, env);
+        if (!identity) {
+          if (!await rateLimit(request, env, 'browser')) return reply({ error: 'Too many cats. Try again shortly.' }, 429);
+          identity = await browserIdentity(request, env, true);
+        }
+        const state = await roulette(env, identity.id, action, args, 'app');
+        return reply(state, 200, identity.cookie ? { 'Set-Cookie': identity.cookie } : {});
+      } catch (error) { return reply({ error: error.message?.slice(0, 240) || 'The cat connection failed.' }, 400); }
+    }
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
     if (request.headers.get('Origin') !== url.origin) return json({ error: 'Join from this website.' }, 403);
     if (url.pathname === '/api/room' && request.method === 'GET') return env.CAT_ROOMS.getByName(GLOBAL_ROOM).fetch(request);

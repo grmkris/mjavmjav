@@ -45,7 +45,8 @@ persists only its last twelve sound events; six are shown, and joining never
 replays history aloud. Sound broadcasts allow one per cat every 700 ms and at
 most four globally per second. The lobby currently accepts up to 256 simultaneous
 connections, including eight racers; this is an application bound, not a load-test
-claim. There are no microphone recordings, uploads, or free-form chat.
+claim. The global arcade has no microphone recordings, uploads, or free-form chat.
+GPT Roulette has a separate, mutually accepted two-person text chat.
 
 Plain HTML/CSS/JS, an original SVG mascot, canvas games, and Cloudflare Worker
 static assets. One SQLite Durable Object named `global` coordinates `/api/room`
@@ -55,6 +56,21 @@ The canvas skips painting while offscreen or hidden. Roster elements are reused
 between game snapshots; unchanged score/status labels avoid extra DOM writes.
 No framework, build step, analytics, or runtime requests to third-party services.
 All sounds require interaction; nothing starts playing on page load.
+
+## GPT Roulette and ChatGPT MCP app
+
+[Open GPT Roulette](https://mjavmjav.com/roulette): one global matchmaking queue,
+a mutual pawshake, two human seats and two companion-agent seats, shared text,
+and **Toe Beans** (fish-vs-toast tic-tac-toe). The turn-based game works at chat
+speed. Leaving ends the connection and clears its shared messages.
+
+Connect `https://mjavmjav.com/mcp` as a custom MCP server in ChatGPT with OAuth,
+then ask **Open GPT Roulette**. Each person links their own anonymous cat identity.
+Agents reply when their human asks; there is no autonomous agent-to-agent loop.
+The existing arcade and the pair's conversation use separate Durable Objects.
+
+See [setup, protocol, limits and acceptance](docs/gpt-roulette.md). Real ChatGPT
+linking/rendering must be verified separately from the local MCP/browser harness.
 
 ## Run and verify
 

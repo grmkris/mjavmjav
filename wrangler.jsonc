@@ -8,7 +8,7 @@
     "directory": "./public",
     "binding": "ASSETS",
     "run_worker_first": [
-      "/api/*"
+      "/api/*", "/mcp", "/oauth/*", "/.well-known/*"
     ]
   },
   "routes": [
@@ -26,7 +26,10 @@
       {
         "name": "CAT_ROOMS",
         "class_name": "CatRoom"
-      }
+      },
+      { "name": "ROULETTE_AUTH", "class_name": "RouletteAuth" },
+      { "name": "ROULETTE_QUEUE", "class_name": "RouletteQueue" },
+      { "name": "ROULETTE_MATCHES", "class_name": "RouletteMatch" }
     ]
   },
   "migrations": [
@@ -35,7 +38,8 @@
       "new_sqlite_classes": [
         "CatRoom"
       ]
-    }
+    },
+    { "tag": "v2-roulette", "new_sqlite_classes": ["RouletteAuth", "RouletteQueue", "RouletteMatch"] }
   ],
   "observability": {
     "enabled": true,

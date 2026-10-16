@@ -6,7 +6,7 @@
   "description": "Mjav mjav: a cat soundboard and multiplayer arcade for mjavmjav.com.",
   "license": "MIT",
   "scripts": {
-    "check": "node --check public/app.js && node --check public/arcade.js && node --check public/bonk-ui.js && node --check public/game-core.js && node --check public/game-render.js && node --check src/worker.js && node --test --experimental-test-isolation=none tests/game-core.test.js && bun run agents:check",
+    "check": "node --check public/app.js && node --check public/arcade.js && node --check public/bonk-ui.js && node --check public/game-core.js && node --check public/game-render.js && node --check src/worker.js && node --check src/roulette-auth.js && node --check src/roulette-mcp.js && node --check src/roulette.js && node --check public/roulette.js && node --test --experimental-test-isolation=none tests/game-core.test.js tests/roulette-core.test.js && bun run agents:check",
     "agents:check": "bunx repoagents@1 check",
     "dev": "wrangler dev",
     "test": "playwright test",
@@ -16,5 +16,9 @@
     "wrangler": "4.151.0",
     "@playwright/test": "1.63.0"
   },
-  "packageManager": "bun@1.4.2"
+  "packageManager": "bun@1.4.2",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "zod": "^4.6.7"
+  }
 }
