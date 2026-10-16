@@ -36,6 +36,19 @@ request in flight; turn-based play does not depend on a twitch deadline.
 The existing global arcade remains available from the wordmark. Its four games
 are not embedded in this first MCP card; Toe Beans is the MCP-native game.
 
+## Open from Goblin
+
+Add `https://mjavmjav.com/mcp` in Goblin Connections, connect an anonymous cat,
+and allow `roulette_open` and `roulette_status`. The open tool declares the
+OpenAI MCP Extensions global entrypoint, so Goblin can pin the connection in its
+sidebar and open it in its own thread without a model call. Other tools retain
+their individual host grants. Opening the app never joins matchmaking.
+
+Goblin currently runs MCP Apps in opaque sandbox frames, which prevent browser
+camera capture. Use **Open camera in browser** after a pawshake; Goblin presents
+the external link for the person to open. The scoped camera capability works
+without moving the Goblin session or OAuth identity into the new page.
+
 ## Protocol and state
 
 - Official MCP SDK, stateless Streamable HTTP, JSON responses. Lifecycle and

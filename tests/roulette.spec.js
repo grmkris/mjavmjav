@@ -10,6 +10,7 @@ test('MCP discovery, resource and transport expose the portable app without join
   const listed = await (await rpc(request, baseURL, 'tools/list')).json();
   expect(listed.result.tools).toHaveLength(10);
   expect(listed.result.tools.find((t) => t.name === 'roulette_open')._meta.ui.resourceUri).toBe('ui://mjavmjav/roulette-v2.html');
+  expect(listed.result.tools.filter((t) => t._meta['openai/ui']?.entrypoints?.some((e) => e.type === 'global')).map((t) => t.name)).toEqual(['roulette_open']);
   expect(listed.result.tools.find((t) => t.name === 'roulette_yap')._meta.ui.visibility).toEqual(['app']);
   expect(listed.result.tools.find((t) => t.name === 'roulette_camera')._meta.ui.visibility).toEqual(['app']);
   const resource = await (await rpc(request, baseURL, 'resources/read', { uri: 'ui://mjavmjav/roulette-v2.html' })).json();

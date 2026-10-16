@@ -54,7 +54,7 @@ export async function serveMcp(request, env) {
     const schemes = [{ type: 'oauth2', scopes: ['roulette'] }];
     server.registerTool(name, { title, description, inputSchema: z.object(inputSchema).strict(), securitySchemes: schemes,
       annotations: { readOnlyHint, destructiveHint: action === 'leave', openWorldHint: true, idempotentHint: action !== 'game' && action !== 'say' },
-      _meta: { securitySchemes: schemes, ui: { visibility: visibility ? ['app'] : ['model', 'app'], ...(name === 'roulette_open' ? { resourceUri: UI_URI } : {}) } } },
+      _meta: { securitySchemes: schemes, ui: { visibility: visibility ? ['app'] : ['model', 'app'], ...(name === 'roulette_open' ? { resourceUri: UI_URI } : {}) }, ...(name === 'roulette_open' ? { 'openai/ui': { entrypoints: [{ type: 'global' }] } } : {}) } },
     async (args) => {
       if (!identity) return { isError: true, content: [{ type: 'text', text: 'Connect your anonymous cat identity first.' }] };
       try {
