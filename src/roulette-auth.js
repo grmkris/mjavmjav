@@ -65,7 +65,8 @@ export async function rateLimit(request, env, category, max = 30) {
   return (await record(env, 'limit', `${category}:${ip}`)).limited(max);
 }
 const escapeHTML = (value) => String(value).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
-const html = (body, cookie) => new Response(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Connect your cat</title><link rel="stylesheet" href="/roulette.css"><body><main class="shell consent">${body}</main></body></html>`, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer', 'Content-Security-Policy': "default-src 'none'; style-src 'self'; font-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'", ...(cookie ? { 'Set-Cookie': cookie } : {}) } });
+// Keep the native consent POST same-origin; no-referrer makes browsers send Origin: null.
+const html = (body, cookie) => new Response(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Connect your cat</title><link rel="stylesheet" href="/roulette.css"><body><main class="shell consent">${body}</main></body></html>`, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'Referrer-Policy': 'same-origin', 'Content-Security-Policy': "default-src 'none'; style-src 'self'; font-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'", ...(cookie ? { 'Set-Cookie': cookie } : {}) } });
 
 export async function authRoute(request, env) {
   const url = new URL(request.url), base = baseURL(request), resource = `${base}/mcp`;

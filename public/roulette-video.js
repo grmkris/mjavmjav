@@ -63,7 +63,7 @@ export class CameraCall {
     } catch (error) {
       if (epoch === this.epoch) {
         this.stream?.getTracks().forEach((t) => t.stop()); this.stream = null; this.$('local').srcObject = null;
-        this.message(error.name === 'NotAllowedError' ? 'Camera access was blocked. Allow it in your browser, or use Open camera in browser after a pawshake.' : error.name === 'NotFoundError' ? 'No camera found. Connect one and try again.' : error.message);
+        this.message(error.name === 'NotAllowedError' ? 'Camera access was blocked. Allow it in your browser, or use Open camera in browser after a pawshake.' : error.name === 'NotFoundError' ? 'No camera found. Connect one and try again.' : error.name === 'SecurityError' || /security origin/i.test(error.message) ? 'This embedded host cannot open a camera. Use Open camera in browser after a pawshake.' : error.message);
       }
     } finally { if (epoch === this.epoch) { this.busy = false; this.render(); } }
   }

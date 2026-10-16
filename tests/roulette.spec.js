@@ -1,3 +1,4 @@
+import { randomBytes, createHash } from 'node:crypto';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { test, expect, request as requests } from '@playwright/test';
@@ -47,6 +48,29 @@ test('OAuth binds code to PKCE, client, resource and browser; rotates refresh an
   await request.post('/oauth/revoke', { form: { token: auth.access_token, client_id: client } });
   expect((await rpc(request, baseURL, 'tools/call', { name: 'roulette_status', arguments: {} }, auth.access_token)).status()).toBe(401);
   const denied = await request.post('/api/roulette', { headers: { Origin: 'https://evil.invalid' }, data: { action: 'join' } }); expect(denied.status()).toBe(403);
+});
+
+test('browser consent preserves same-origin checks and completes a real form submission', async ({ page, baseURL }) => {
+  localOnly();
+  const client = await register(page.request, baseURL);
+  const verifier = randomBytes(48).toString('base64url'), challenge = createHash('sha256').update(verifier).digest('base64url');
+  const params = { client_id: client, redirect_uri: `${baseURL}/oauth-test-callback`, response_type: 'code', code_challenge_method: 'S256', code_challenge: challenge, resource: `${baseURL}/mcp`, scope: 'roulette', state: 'browser-state' };
+  await page.route(`${baseURL}/oauth-test-callback?**`, (route) => route.fulfill({ contentType: 'text/html', body: 'Connected' }));
+  await page.goto(`${baseURL}/oauth/authorize?${new URLSearchParams(params)}`);
+  const flow = await page.locator('[name="flow"]').inputValue();
+  for (const origin of ['null', 'https://evil.invalid']) {
+    expect((await page.request.post(`${baseURL}/oauth/authorize`, { headers: { Origin: origin }, form: { flow, decision: 'allow' }, maxRedirects: 0 })).status()).toBe(400);
+  }
+  const submitted = page.waitForRequest((request) => request.method() === 'POST' && new URL(request.url()).pathname === '/oauth/authorize');
+  await page.getByRole('button', { name: 'Connect this cat', exact: true }).click();
+  expect((await submitted).headers().origin).toBe(baseURL);
+  await page.waitForURL(`${baseURL}/oauth-test-callback?**`);
+  const redirect = new URL(page.url());
+  expect(redirect.searchParams.get('state')).toBe('browser-state'); expect(redirect.searchParams.get('iss')).toBe(baseURL);
+  const token = await page.request.post(`${baseURL}/oauth/token`, { form: tokenForm(baseURL, { code: redirect.searchParams.get('code'), verifier, client }) });
+  expect(token.status()).toBe(200);
+  const auth = await token.json();
+  expect((await call(page.request, baseURL, auth.access_token, 'roulette_open')).structuredContent.status).toBe('idle');
 });
 
 test('two authenticated MCP pairs handshake, chat, play and stay isolated', async ({ request, baseURL }) => {
@@ -122,7 +146,7 @@ test('embedded MCP Apps bridge preserves prefixed tools, drafts, and explicit ag
   await page.goto(`${baseURL}/mcp-host-test`);
   await page.evaluate((markup) => {
     document.body.replaceChildren(); window.hostCalls = []; window.hostPrompts = [];
-    const frame = document.createElement('iframe'); frame.id = 'widget'; frame.style.cssText = 'width:100%;height:1200px;border:0';
+    const frame = document.createElement('iframe'); frame.id = 'widget'; frame.setAttribute('sandbox', 'allow-scripts'); frame.style.cssText = 'width:100%;height:1200px;border:0';
     const state = { me: { id: 'a', name: 'Soup Goblin' }, status: 'active', queueExpires: null, match: { id: 'match-1', phase: 'active', members: [{ id: 'a', name: 'Soup Goblin' }, { id: 'b', name: 'Cosmic Loaf' }], accepted: ['a','b'], expires: Date.now() + 60000, messages: [], game: null, revision: 1, reason: null } };
     window.addEventListener('message', (event) => {
       if (event.source !== frame.contentWindow || event.data?.jsonrpc !== '2.0') return;
@@ -132,7 +156,7 @@ test('embedded MCP Apps bridge preserves prefixed tools, drafts, and explicit ag
       if (msg.method === 'ui/initialize') result = { protocolVersion: '2026-01-26', hostInfo: { name: 'test-host', version: '1' }, hostCapabilities: {}, hostContext: { toolInfo: { tool: { name: 'cats_roulette_open' } } } };
       if (msg.method === 'tools/call') {
         window.hostCalls.push(msg.params);
-        if (msg.params.name === 'cats_roulette_yap') { state.match.messages.push({ id: 'msg-1', participant: 'a', channel: 'app', text: msg.params.arguments.text, at: Date.now() }); state.match.revision++; }
+        if (msg.params.name === 'cats_roulette_yap') { state.match.messages.push({ id: `msg-${state.match.revision}`, participant: 'a', channel: 'app', text: msg.params.arguments.text, at: Date.now() }); state.match.revision++; }
         result = { structuredContent: state, content: [] };
       }
       if (msg.method === 'ui/message') window.hostPrompts.push(msg.params);
@@ -144,6 +168,9 @@ test('embedded MCP Apps bridge preserves prefixed tools, drafts, and explicit ag
   await expect(widget.locator('#chat')).toBeVisible();
   await widget.locator('#yap').fill('cat diplomat reporting for duty'); await widget.locator('#send').click();
   await expect(widget.locator('#messages')).toContainText('cat diplomat');
+  await widget.locator('#yap').fill('keyboard cat reporting too'); await widget.locator('#yap').press('Enter');
+  await expect(widget.locator('#messages')).toContainText('keyboard cat');
+  expect(await page.evaluate(() => window.hostCalls.filter((c) => c.name === 'cats_roulette_yap').length)).toBe(2);
   await widget.locator('#ask').click();
   await expect.poll(() => page.evaluate(() => window.hostPrompts.length)).toBe(1);
   expect(await page.evaluate(() => window.hostCalls.every((c) => c.name.startsWith('cats_roulette_')))).toBe(true);

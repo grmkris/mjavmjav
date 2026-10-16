@@ -131,7 +131,7 @@ test('embedded host camera permission and external-link fallback use the same ma
     await page.goto(`${baseURL}/camera-host`);
     await page.evaluate((markup) => {
       const frame = document.createElement('iframe'); frame.id = 'widget'; frame.style.cssText = 'width:100%;height:1500px';
-      frame.setAttribute('allow', "camera 'none'; microphone 'none'"); frame.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+      frame.setAttribute('allow', "camera 'none'; microphone 'none'"); frame.setAttribute('sandbox', 'allow-scripts');
       window.links = [];
       window.addEventListener('message', async ({ source, data }) => {
         if (source !== frame.contentWindow || !data?.id) return;
@@ -146,13 +146,13 @@ test('embedded host camera permission and external-link fallback use the same ma
     const frame = page.frameLocator('#widget');
     await expect(frame.locator('#chat')).toBeVisible();
     await frame.locator('[data-camera="preview"]').click();
-    await expect(frame.locator('[data-camera="status"]')).toContainText('blocked');
+    await expect(frame.locator('[data-camera="status"]')).toContainText('cannot open a camera');
     await frame.locator('[data-camera="external"]').click();
     await expect.poll(() => page.evaluate(() => window.links.length)).toBe(1);
     const link = new URL(await page.evaluate(() => window.links[0]));
     expect(link.pathname).toBe('/roulette-camera'); expect(new URLSearchParams(link.hash.slice(1)).get('match')).toBe(matchId);
     // A permitted host can run the exact same resource; permission remains a host decision.
-    await page.locator('#widget').evaluate((node) => { node.setAttribute('allow', 'camera; microphone'); node.srcdoc = node.srcdoc; });
+    await page.locator('#widget').evaluate((node) => { node.setAttribute('allow', 'camera; microphone'); node.setAttribute('sandbox', 'allow-scripts allow-same-origin'); node.srcdoc = node.srcdoc; });
     await expect(frame.locator('#chat')).toBeVisible();
     await frame.locator('[data-camera="preview"]').click(); await expect(frame.locator('[data-camera="share"]')).toBeVisible();
     await frame.locator('[data-camera="share"]').click();

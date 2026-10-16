@@ -156,7 +156,13 @@ $('join').addEventListener('click', async () => {
 $('accept').addEventListener('click', () => act('accept'));
 $('leave').addEventListener('click', () => { camera.stop('Camera off.'); act('leave'); });
 $('start').addEventListener('click', () => act('game'));
-$('composer').addEventListener('submit', (event) => { event.preventDefault(); if ($('yap').value.trim()) act('say', { text: $('yap').value.trim() }); });
+function sendYap() { if ($('yap').value.trim()) act('say', { text: $('yap').value.trim() }); }
+// MCP hosts may forbid native form submission, including its submit event.
+$('send').addEventListener('click', sendYap);
+$('yap').addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' && !event.isComposing) { event.preventDefault(); sendYap(); }
+});
+$('composer').addEventListener('submit', (event) => { event.preventDefault(); sendYap(); });
 $('retry').addEventListener('click', () => { if (lastFailure) act(lastFailure.action, {}, lastFailure.args); });
 $('ask').addEventListener('click', async () => {
   $('ask').disabled = true;
