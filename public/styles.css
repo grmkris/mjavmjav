@@ -165,9 +165,9 @@ kbd { padding: .25rem .35rem; border: 1px solid color-mix(in oklch, var(--paper)
 #room-count { flex-shrink: 0; color: var(--acid); font-size: .75rem; font-variant-numeric: tabular-nums; }
 .arcade-layout { display: grid; gap: 2rem; align-items: start; }
 .game-column { min-inline-size: 0; inline-size: min(100%, 38rem); justify-self: center; }
-.game-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .35rem; margin-block-end: .5rem; }
+.game-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .35rem; margin-block-end: .5rem; }
 .arcade button { min-block-size: 44px; min-inline-size: 44px; border: 1px solid color-mix(in oklch, var(--paper), transparent 65%); border-radius: .65rem; padding: .65rem .75rem; color: var(--paper); background: transparent; font-size: .875rem; font-weight: 700; user-select: none; }
-.game-tabs button { padding: .6rem .3rem; font-size: clamp(.85rem, 2.5vw, 1rem); line-height: 1.1; }
+.game-tabs button { padding: .6rem .3rem; font-size: clamp(.75rem, 2.5vw, 1rem); line-height: 1.1; }
 .game-tabs button span { display: block; margin-block-start: .3rem; color: var(--muted); font-size: .62rem; font-weight: 400; }
 .game-tabs button[aria-pressed="true"] { color: var(--ink); background: var(--cream); border-color: var(--cream); }
 .game-tabs button[aria-pressed="true"] span { color: var(--ink); }
@@ -254,4 +254,23 @@ kbd { padding: .25rem .35rem; border: 1px solid color-mix(in oklch, var(--paper)
 }
 @media (prefers-reduced-motion: reduce) {
   .arcade button:not(:disabled):active { transform: none; }
+}
+
+/* Transparent tile buttons follow the canvas grid and preserve keyboard access. */
+.bonk-map { position: absolute; inset-inline-start: 10%; inset-block-start: 20%; inline-size: 80%; block-size: 60%; display: grid; grid-template-columns: repeat(6, 1fr); grid-template-rows: repeat(6, 1fr); }
+.arcade .bonk-map button { min-inline-size: 0; min-block-size: 0; padding: 0; border: 0; border-radius: .25rem; background: transparent; touch-action: manipulation; }
+.arcade .bonk-map button:focus-visible { outline: 3px solid #171229; outline-offset: -4px; }
+.arcade .bonk-map button:not(:disabled):active { transform: none; background: #17122922; }
+.game-overlay { z-index: 2; }
+.bonk-controls { padding-block-start: .6rem; }
+#bonk-status-row { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-block-end: .5rem; }
+#bonk-status { margin: 0; font-size: .8rem; color: var(--pink); font-weight: 700; font-variant-numeric: tabular-nums; }
+.bonk-tools { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .4rem; }
+.bonk-tools button[aria-pressed="true"] { background: var(--cream); color: var(--ink); border-color: var(--cream); }
+#bonk-plan { margin: .5rem .15rem; min-block-size: 2.8em; font-size: .75rem; line-height: 1.4; color: var(--paper); }
+#bonk-lock { inline-size: 100%; min-block-size: 48px; }
+.bonk-cats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .45rem; margin: .8rem .25rem .25rem; padding: 0; list-style: none; }
+.bonk-cats li { border-inline-start: 3px solid var(--cat-color); padding-inline-start: .4rem; font-size: .73rem; line-height: 1.5; overflow-wrap: anywhere; }
+@media (hover: hover) and (pointer: fine) {
+  .arcade .bonk-map button:not(:disabled):hover { background: #17122912; }
 }

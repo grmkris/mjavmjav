@@ -1,16 +1,18 @@
-import { createGame, applyInput, stepGame } from './game-core.js';
+import { createGame, applyInput, applyPlan, stepGame } from './game-core.js';
 import { drawGame } from './game-render.js';
+import { createBonkUI } from './bonk-ui.js';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('game-canvas');
 const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
 const modeButtons = [...document.querySelectorAll('[data-game]')];
 const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-const modeNames = { flappy: 'Flappy Mjav', jump: 'Boing Boing', dodge: 'Honk Dodge' };
+const modeNames = { flappy: 'Flappy Mjav', jump: 'Boing Boing', dodge: 'Honk Dodge', bonk: 'Bonk Club' };
 const instructions = {
   flappy: 'Tap the game or press Space to flap. Avoid the cucumbers. They know what you did.',
   jump: 'Bounce automatically across smaller toast. Steer with ← →, A / D, or the big buttons before the floor catches up.',
   dodge: 'Steer left and right. The geese fall faster every second. Do not become bread.',
+  bonk: 'Move one tile (diagonals too), then aim a fish or shield. Fish hit the target and its four neighbours, even you. Lock within 8 seconds; everyone reveals together. 3 hearts. 2 shields.',
 };
 let mode = 'flappy';
 let world = createGame(mode, [{ id: 'solo', name: 'You' }], 12345);
@@ -50,9 +52,17 @@ function me() { return world?.players.find((player) => player.id === (sharedView
 function active() { return running && !paused && world?.phase === 'playing' && me()?.alive; }
 function setMessage(text) { $('room-status').textContent = text; }
 function focusGame() {
-  canvas.closest('.game-machine').scrollIntoView({ block: 'center', behavior: 'auto' });
+  (mode === 'bonk' ? canvas.closest('.game-viewport') : canvas.closest('.game-machine')).scrollIntoView({ block: mode === 'bonk' ? 'start' : 'center', behavior: 'auto' });
   canvas.focus({ preventScroll: true });
 }
+
+const bonk = createBonkUI({
+  getWorld: () => world, getPlayer: me, isPaused: () => paused, sound,
+  submit: (plan) => {
+    if (sharedView) send({ type: 'plan', ...plan });
+    else bonk.ack({ ...plan, accepted: applyPlan(world, 'solo', plan) });
+  },
+});
 function recordBest() {
   const score = me()?.score || 0;
   if (score <= (Number(best[mode]) || 0)) return;
@@ -69,6 +79,10 @@ function updateMode(value) {
   $('game-help').textContent = instructions[mode];
   $('flap-control').hidden = mode !== 'flappy';
   $('steer-controls').hidden = !['jump', 'dodge'].includes(mode);
+  document.querySelector('.game-controls').hidden = mode === 'bonk';
+  (mode === 'bonk' ? $('bonk-status-row') : document.querySelector('.game-controls')).append($('pause-game'));
+  canvas.setAttribute('aria-label', mode === 'bonk' ? 'Bonk Club. Use the map tile buttons to move and aim your fish.' : 'Cat arcade game. Flap with Space, or steer with the arrow keys. Touch controls are below.');
+  $('practice-solo').textContent = mode === 'bonk' ? 'practice vs bots' : 'practice solo';
   $('best-score').textContent = String(best[mode] || 0);
 }
 
@@ -77,7 +91,7 @@ function showOverlay(title, description) {
   $('game-title').textContent = title;
   $('game-instructions').textContent = description;
   $('solo-start').hidden = false;
-  $('solo-start').textContent = !sharedView && gameOverHandled ? 'again. obviously.' : 'play solo';
+  $('solo-start').textContent = !sharedView && gameOverHandled ? 'again. obviously.' : mode === 'bonk' ? 'practice vs bots' : 'play solo';
 }
 
 function startSolo() {
@@ -87,7 +101,9 @@ function startSolo() {
   $('watch-global').hidden = false;
   $('pause-game').disabled = false;
   for (const button of modeButtons) button.disabled = false;
-  world = createGame(mode, [{ id: 'solo', name: 'You' }], crypto.getRandomValues(new Uint32Array(1))[0]);
+  const roster = [{ id: 'solo', name: 'You' }];
+  if (mode === 'bonk') roster.push({ id: 'bot-1', name: 'Bot Sardine', bot: true }, { id: 'bot-2', name: 'Bot Loaf', bot: true });
+  world = createGame(mode, roster, crypto.getRandomValues(new Uint32Array(1))[0]);
   running = true; paused = false; gameOverHandled = false; previousJumps = 0;
   $('game-overlay').hidden = true;
   $('pause-game').textContent = 'pause';
@@ -106,6 +122,13 @@ function finish() {
   try { localStorage.setItem('mjav-best', JSON.stringify(best)); } catch { /* Personal bests are optional. */ }
   $('best-score').textContent = String(best[mode]);
   $('game-state').textContent = 'cat.exe has stopped';
+  if (world.mode === 'bonk') {
+    const winners = world.players.filter((player) => world.winners.includes(player.id));
+    const won = winners.some((player) => player.id === (sharedView ? selfId : 'solo'));
+    showOverlay(!winners.length ? 'mutually assured mjav.' : winners.length > 1 ? 'shared custody of the brain cell.' : won ? 'you won the catfight.' : `${winners[0].name} owns the brain cell.`, !winners.length ? 'Every cat got bonked. Nobody wins this very serious sport.' : `${winners.map((player) => player.name).join(' & ')}: ${winners[0].hp} hearts, ${winners[0].score} hits. Most hearts wins; hits break ties.`);
+    if (me()) sound(won ? 'ascend' : 'bonk');
+    return;
+  }
   const winner = [...world.players].sort((a, b) => b.score - a.score || b.survived - a.survived)[0];
   const title = mode === 'flappy' ? 'outplayed by a vegetable.' : mode === 'jump' ? 'gravity remains undefeated.' : 'the geese won.';
   const soloScore = mode === 'dodge' ? `${(score / 10).toFixed(1)} seconds of goose denial` : `${score} ${mode === 'flappy' ? 'cucumbers escaped' : 'metres of bad decisions'}`;
@@ -125,7 +148,7 @@ function flap() { if (mode === 'flappy') input({ flap: true }); }
 function render(time) {
   const dt = Math.min((time - (lastFrame || time)) / 1000, 0.05);
   lastFrame = time;
-  if (running && !paused && (!sharedView || performance.now() - lastSnapshot < 150)) {
+  if (running && !paused && !(sharedView && world.mode === 'bonk') && (!sharedView || performance.now() - lastSnapshot < 150)) {
     const steps = Math.max(1, Math.ceil(dt * 60));
     for (let i = 0; i < steps; i++) stepGame(world, dt / steps);
   }
@@ -139,7 +162,8 @@ function render(time) {
     if (sharedView && !player.alive && world.phase !== 'over') setText('game-state', 'you bonked · spectating');
   }
   if (running && world.phase === 'over' && !sharedView) finish();
-  if (arenaVisible && !document.hidden) drawGame(ctx, world, sharedView ? selfId : 'solo', time, reduced.matches);
+  bonk.update();
+  if (arenaVisible && !document.hidden) drawGame(ctx, world, sharedView ? selfId : 'solo', time, reduced.matches, world.mode === 'bonk' && me() ? bonk.draft() : undefined);
   requestAnimationFrame(render);
 }
 
@@ -219,13 +243,14 @@ function updateRoster() {
     const more = document.createElement('li'); more.textContent = `+ ${room.players.length - 12} more cats in the audience`; $('room-roster').append(more);
   }
   const queued = room.queue.includes(selfId);
+  const waiting = room.waitingMode === 'bonk';
   const participant = race && room.world.players.some((p) => p.id === selfId && p.alive);
   const canJoin = race && room.world.phase === 'countdown' && room.world.countdown > 0.5 && room.world.players.length < 8 && !room.world.players.some((p) => p.id === selfId);
   $('room-queue').hidden = !queued;
-  setPlayState(queued ? `queued · #${room.queue.indexOf(selfId) + 1}` : sharedView && participant ? (room.world.phase === 'countdown' ? 'you’re in. get ready!' : 'you’re racing!') : canJoin ? 'join this round' : race ? 'play next round' : 'play together', Boolean(queued || (sharedView && participant)));
-  for (const button of modeButtons) button.disabled = sharedView && Boolean(race);
+  setPlayState(queued ? waiting ? 'waiting for a rival…' : `queued · #${room.queue.indexOf(selfId) + 1}` : sharedView && participant ? (room.world.phase === 'countdown' ? 'you’re in. get ready!' : room.world.mode === 'bonk' ? 'catfight in progress' : 'you’re racing!') : canJoin ? 'join this round' : waiting ? 'join the catfight' : race ? 'play next round' : 'play together', Boolean(queued || (sharedView && participant)));
+  for (const button of modeButtons) button.disabled = sharedView && Boolean(race || waiting);
   setText('room-count', `${room.players.length} ${room.players.length === 1 ? 'cat' : 'cats'} online`);
-  setText('queue-status', queued ? 'You’ll join the next countdown automatically.' : participant && sharedView ? `${room.world.players.length}/8 cats in this round. Good luck, tiny beast.` : race ? `${modeNames[room.world.mode]} is on. ${room.queue.length} waiting for the next round.` : `One global room. Up to 8 cats. Starts with one tap.`);
+  setText('queue-status', waiting ? 'Bonk Club needs 2 humans. One cat is waiting. Join them!' : queued ? 'You’ll join the next countdown automatically.' : participant && sharedView ? `${room.world.players.length}/8 cats in this round. Good luck, tiny beast.` : race ? `${modeNames[room.world.mode]} is on. ${room.queue.length} waiting for the next round.` : mode === 'bonk' ? 'One global map. 2–8 humans. Bots only in practice.' : `One global room. Up to 8 cats. Starts with one tap.`);
 }
 
 function showLobby() {
@@ -238,6 +263,7 @@ function showLobby() {
 
 function sharedWorld(next) {
   if (!sharedView) return;
+  if (room?.waitingMode === 'bonk') { updateMode('bonk'); showLobby(); return; }
   if (!next) { showLobby(); return; }
   const newRound = world.round !== next.round;
   const joining = !me() && next.players.some((player) => player.id === selfId);
@@ -251,7 +277,7 @@ function sharedWorld(next) {
   if (world.phase === 'over') finish();
   else {
     $('game-overlay').hidden = true;
-    setText('game-state', !me() ? 'spectating the cats' : !me().alive ? 'you bonked · spectating' : world.phase === 'countdown' ? 'get your paws ready' : 'global cat race');
+    setText('game-state', !me() ? 'spectating the cats' : !me().alive ? 'you bonked · spectating' : world.phase === 'countdown' ? 'get your paws ready' : world.mode === 'bonk' ? 'global catfight' : 'global cat race');
   }
 }
 
@@ -338,6 +364,8 @@ function joinGlobal() {
       room.world = data.world;
       sharedWorld(data.world);
       updateRoster();
+    } else if (data.type === 'plan-ack') {
+      bonk.ack(data);
     } else if (data.type === 'reaction') {
       stageSounds = [...stageSounds, data].slice(-12); renderStage();
       $('room-reaction').textContent = `${data.name}: ${data.sound}!`;

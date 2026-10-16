@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#171229" />
     <link rel="canonical" href="https://mjavmjav.com/" />
     <link rel="preload" as="font" href="/fonts/bricolage-grotesque-latin.woff2" type="font/woff2" crossorigin />
-    <meta name="description" content="Mjav mjav. Three ridiculous multiplayer cat games and one global soundboard." />
+    <meta name="description" content="Mjav mjav. Bonk Club PvP, three ridiculous cat games, and one global soundboard." />
     <title>mjav mjav — cat internet</title>
     <link rel="icon" href="/cat.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/styles.css" />
@@ -28,20 +28,29 @@
         <div class="arcade-layout">
           <div class="game-column">
             <div class="game-tabs" role="group" aria-label="Choose a game">
-              <button type="button" data-game="flappy" aria-pressed="true">Flappy Mjav <span>cucumber avoidance</span></button>
-              <button type="button" data-game="jump" aria-pressed="false">Boing Boing <span>crumbly toast</span></button>
-              <button type="button" data-game="dodge" aria-pressed="false">Honk Dodge <span>geese have beef</span></button>
+              <button type="button" data-game="flappy" aria-pressed="true">Flappy Mjav <span>flap</span></button>
+              <button type="button" data-game="jump" aria-pressed="false">Boing Boing <span>jump</span></button>
+              <button type="button" data-game="dodge" aria-pressed="false">Honk Dodge <span>dodge</span></button>
+              <button type="button" data-game="bonk" aria-pressed="false">Bonk Club <span>PvP · take turns</span></button>
             </div>
             <div class="game-machine">
               <div class="game-hud"><span id="game-state">global cat lobby</span><span>score <strong id="current-score">0</strong></span><span>best <strong id="best-score">0</strong></span></div>
               <div class="game-viewport">
                 <canvas id="game-canvas" width="420" height="560" tabindex="0" aria-label="Cat arcade game. Flap with Space, or steer with the arrow keys. Touch controls are below.">Your browser needs canvas to play these games.</canvas>
+                <div id="bonk-map" class="bonk-map" role="group" aria-label="Bonk Club map. Arrow keys choose a tile; Enter selects it." hidden></div>
                 <div class="game-overlay" id="game-overlay"><img class="game-mascot" src="/cat.svg" alt="" width="86" height="86" /><h2 id="game-title">Flappy Mjav</h2><p id="game-instructions">Tap to flap. Avoid the cucumbers.</p><div class="overlay-actions"><button type="button" class="arcade-primary" id="overlay-play" disabled>connecting…</button><button type="button" id="solo-start">play solo</button></div></div>
               </div>
               <div class="game-controls"><button type="button" id="flap-control">flap! <kbd>Space</kbd></button><div id="steer-controls" hidden><button type="button" id="steer-left" aria-label="Steer left">← left</button><button type="button" id="steer-right" aria-label="Steer right">right →</button></div><button type="button" id="pause-game">pause</button></div>
+              <div id="bonk-controls" class="bonk-controls" hidden>
+                <div id="bonk-status-row"><p id="bonk-status">Meet the other cats.</p></div>
+                <div class="bonk-tools" role="group" aria-label="Plan your turn"><button id="bonk-move" type="button" aria-pressed="true">1. move</button><button id="bonk-throw" type="button" aria-pressed="false">2. fish</button><button id="bonk-shield" type="button" aria-pressed="true">shield (2)</button></div>
+                <p id="bonk-plan" role="status">Pick a move, then a fish target or shield.</p>
+                <button id="bonk-lock" class="arcade-primary" type="button">lock my plan</button>
+              </div>
               <div class="play-row"><button class="arcade-primary" type="button" id="quick-play" disabled>connecting…</button><button type="button" id="practice-solo">practice solo</button></div>
               <div class="queue-row"><p id="queue-status">One global room. Tap play together to join.</p><button type="button" id="room-queue" hidden>leave queue</button><button type="button" id="watch-global" hidden>watch global</button></div>
               <p class="game-help" id="game-help">Tap or press Space to flap. Avoid the cucumbers.</p>
+              <ol id="bonk-cats" class="bonk-cats" aria-label="Cats on the map" hidden></ol>
             </div>
           </div>
           <aside class="room-panel" aria-labelledby="room-title">
@@ -132,7 +141,7 @@
 
       <section class="manifesto" aria-label="Cat manifesto">
         <div class="manifesto-big">mjav<br />mjav<br /><span>mjav.</span></div>
-        <div class="manifesto-copy"><p class="eyebrow"><span>important research</span> / source: trust me</p><p>This cat has never paid rent, answered an email, or experienced a normal thought. Yet somehow? <strong>iconic.</strong></p><p class="tiny-note">One real meow. Nine very questionable noises. Three career-ending games. No cats were employed in the making of this website.</p></div>
+        <div class="manifesto-copy"><p class="eyebrow"><span>important research</span> / source: trust me</p><p>This cat has never paid rent, answered an email, or experienced a normal thought. Yet somehow? <strong>iconic.</strong></p><p class="tiny-note">One real meow. Nine very questionable noises. Four career-ending games. No cats were employed in the making of this website.</p></div>
       </section>
     </main>
 

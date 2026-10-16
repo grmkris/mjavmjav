@@ -6,7 +6,7 @@
   "description": "Mjav mjav: a cat soundboard and multiplayer arcade for mjavmjav.com.",
   "license": "MIT",
   "scripts": {
-    "check": "node --check public/app.js && node --check public/arcade.js && node --check public/game-core.js && node --check public/game-render.js && node --check src/worker.js && node --test --experimental-test-isolation=none tests/game-core.test.js && bun run agents:check",
+    "check": "node --check public/app.js && node --check public/arcade.js && node --check public/bonk-ui.js && node --check public/game-core.js && node --check public/game-render.js && node --check src/worker.js && node --test --experimental-test-isolation=none tests/game-core.test.js && bun run agents:check",
     "agents:check": "bunx repoagents@1 check",
     "dev": "wrangler dev",
     "test": "playwright test",

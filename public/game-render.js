@@ -1,4 +1,4 @@
-import { WIDTH, HEIGHT } from './game-core.js';
+import { WIDTH, HEIGHT, cellPoint, cellDistance, canStep } from './game-core.js';
 
 function rounded(ctx, x, y, w, h, radius, fill, stroke = '#171229') {
   ctx.beginPath(); ctx.roundRect(x, y, w, h, radius);
@@ -32,7 +32,57 @@ function cucumber(ctx, x, y, h) {
   }
 }
 
-export function drawGame(ctx, world, selfId, now, reduceMotion) {
+function drawBonk(ctx, world, selfId, draft) {
+  ctx.fillStyle = '#f6d6e5'; ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  const self = world.players.find((player) => player.id === selfId);
+  ctx.textAlign = 'center'; ctx.fillStyle = '#171229';
+  ctx.font = '800 30px "Bricolage Grotesque", sans-serif';
+  ctx.fillText('Bonk Club', WIDTH / 2, 43);
+  ctx.font = 'bold 15px "Bricolage Grotesque", sans-serif';
+  const subtitle = world.turnPhase === 'reveal' ? 'fish have consequences.' : `turn ${world.turn} / 8 · ${Math.ceil(world.turnRemaining)}s to plot`;
+  ctx.fillText(subtitle, WIDTH / 2, 69);
+  ctx.font = 'bold 12px "Bricolage Grotesque", sans-serif';
+  for (let i = 0; i < 6; i++) {
+    ctx.fillText('ABCDEF'[i], 70 + i * 56, 102);
+    ctx.fillText(String(i + 1), 27, 145 + i * 56);
+  }
+  for (let cell = 0; cell < 36; cell++) {
+    const { x, y } = cellPoint(cell);
+    const blasted = world.turnPhase === 'reveal' && world.blasts.some((blast) => cellDistance(cell, blast.cell) <= 1);
+    const aimed = draft?.target != null && world.turnPhase === 'plan' && cellDistance(cell, draft.target) <= 1;
+    const reachable = self?.alive && world.turnPhase === 'plan' && draft?.tool === 'move' && canStep(cell, self.cell);
+    rounded(ctx, x - 27, y - 27, 54, 54, 6, blasted ? '#ffad70' : aimed ? '#ff91d188' : reachable ? '#ddff4599' : (cell + Math.floor(cell / 6)) % 2 ? '#fff4d6' : '#f7e7c5', '#17122933');
+    if (draft && world.turnPhase === 'plan' && (cell === draft.move || cell === draft.target)) {
+      ctx.lineWidth = 4; ctx.strokeStyle = cell === draft.target ? '#a82961' : '#29745d';
+      ctx.strokeRect(x - 23, y - 23, 46, 46);
+    }
+  }
+  for (const player of world.players) {
+    const peers = world.players.filter((p) => p.cell === player.cell);
+    const offset = (peers.indexOf(player) - (peers.length - 1) / 2) * 9;
+    ctx.save(); ctx.translate(player.x + offset, player.y + 4); ctx.scale(0.75, 0.75);
+    cat(ctx, { ...player, x: 0, vy: 0 }, 0, true); ctx.restore();
+    ctx.fillStyle = '#171229'; ctx.font = '800 10px "Bricolage Grotesque", sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(`${world.players.indexOf(player) + 1}${player.id === selfId ? ' you' : ''}`, player.x + offset, player.y - 19);
+    ctx.fillText(player.alive ? '♥'.repeat(player.hp) : '×', player.x + offset, player.y + 23);
+    if (player.guarding && world.turnPhase === 'reveal') {
+      ctx.strokeStyle = '#29745d'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(player.x, player.y, 24, 0, Math.PI * 2); ctx.stroke();
+    }
+  }
+  for (const blast of world.blasts) {
+    const { x, y } = cellPoint(blast.cell);
+    ctx.save(); ctx.translate(x, y); ctx.fillStyle = '#ff6b4a'; ctx.strokeStyle = '#171229'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(0, 0, 12, 7, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(19, -7); ctx.lineTo(19, 7); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#171229'; ctx.beginPath(); ctx.arc(-6, -1, 2, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  }
+  ctx.fillStyle = '#171229'; ctx.textAlign = 'center'; ctx.font = 'bold 13px "Bricolage Grotesque", sans-serif';
+  const captions = world.turnPhase === 'reveal' ? ['Fish hit the marked tile + its four neighbours.', 'Shields block fish. Your own fish can bonk you.'] : ['Move one tile, diagonals too. Dodge the fish.', 'Pick a fish target or spend one of your 2 shields.'];
+  captions.forEach((line, i) => ctx.fillText(line, WIDTH / 2, 482 + i * 22));
+  ctx.fillText(`${world.players.filter((p) => p.ready && p.alive).length} plans locked · all reveal together`, WIDTH / 2, 542);
+}
+
+export function drawGame(ctx, world, selfId, now, reduceMotion, draft) {
   ctx.clearRect(0, 0, WIDTH, HEIGHT);
   ctx.fillStyle = world.mode === 'flappy' ? '#d7c4f6' : '#b8ebdd'; ctx.fillRect(0, 0, WIDTH, HEIGHT);
   ctx.fillStyle = world.mode === 'flappy' ? '#eadcf9' : '#d4f5ec';
@@ -42,7 +92,9 @@ export function drawGame(ctx, world, selfId, now, reduceMotion) {
     ctx.beginPath(); ctx.ellipse(x, 80 + i * 73 % 300, 65, 18, 0, 0, Math.PI * 2); ctx.fill();
   }
   const self = world.players.find((p) => p.id === selfId) || world.players.find((p) => p.alive) || world.players[0];
-  if (world.mode === 'flappy') {
+  if (world.mode === 'bonk') {
+    drawBonk(ctx, world, selfId, draft);
+  } else if (world.mode === 'flappy') {
     for (const pipe of world.pipes) {
       cucumber(ctx, pipe.x, -20, pipe.gap + 20);
       cucumber(ctx, pipe.x, pipe.gap + 185, HEIGHT - pipe.gap - 185);
