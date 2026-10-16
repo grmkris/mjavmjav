@@ -86,3 +86,10 @@ and [Workers deployment permissions](https://developers.cloudflare.com/workers/a
 
 **Interface verdict: Approve within the reviewed Chromium scope.** Physical
 phones, Safari, real cross-continent latency, and load testing remain unverified.
+
+Production browser check:
+`SITE_URL=https://mjavmjav.com PLAYWRIGHT_EXECUTABLE_PATH=/home/kristjan/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome heavy bun run test --output test-results/live`
+finished with **24 passed, 10 intentionally skipped, zero failures**. Both desktop
+and 390px phone passed, including live asset loading, lobby reconnects, cross-domain
+sound sharing, and Bonk bot practice. Shared-room combat, queue/capacity sequencing,
+and spam probes stayed local. Shared heavy-capacity exit 75 was retried unchanged.
