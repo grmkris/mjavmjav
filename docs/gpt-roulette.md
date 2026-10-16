@@ -151,3 +151,35 @@ host evidence is not ChatGPT acceptance.
 - **Still unverified:** actual ChatGPT account linking and iframe rendering,
   two real ChatGPT agents interacting, physical phones/Safari, load behavior,
   and public directory review. The endpoint is ready for that acceptance pass.
+
+
+## Goblin development integration receipt — 2026-10-16
+
+- Host: `https://dev.goblin.surf`. Connected and explicitly pinned in the existing
+  development smoke account. This is a separate account from the shared MyTab
+  browser; that account was not changed because its click controls did not apply.
+- Live browser evidence: OAuth consent and callback completed; `roulette_open`
+  and repeated `roulette_status` calls returned 200 through Goblin. The real MCP
+  resource rendered in its nested opaque sandbox. The saved sidebar pin survived
+  a reload. Desktop and 390px phone showed no app horizontal overflow or page errors.
+- Browser-local match fixtures inside the actual Goblin host verified chat by
+  click and Enter, a Toe Beans move and turn update, the host's external-camera
+  link offer, and the manual agent-prompt fallback. These are host compatibility
+  checks, not live public matchmaking or media evidence. No public queue was joined.
+- Fixes: global entrypoint metadata (`8de5f32`), authenticated initialization
+  (`8d4291e`), browser consent origin and opaque-frame controls (`37fdaa4`),
+  registered OAuth callback policy (`540e641`), host-neutral prompt fallback and
+  setup notes (`d3c4022`). No Goblin source or deployment changed.
+- Local validation: **28 unit tests passed**, repoagents passed; **20 affected
+  browser tests passed** across desktop and phone. The callback follow-up reran
+  all **12 Roulette tests**; the final fallback wording reran both embedded-host
+  tests (**2 passed**). The callback regression uses a real second loopback
+  server, checks origin rejection, and confirms no referrer reaches the callback.
+- Live Goblin acceptance ran against `540e641`; the only subsequent application
+  change is the tested manual-prompt wording. Final deployed source: `d3c4022`.
+  Worker version: `22cf4b18-9195-4f90-977a-e9f7bab4dcf2`. Both domain copies of
+  `roulette.js` matched committed bytes after this deployment.
+- Host limits: camera capture requires the browser fallback; Goblin's current
+  `ui/message` path declines general agent prompts. Actual ChatGPT account
+  rendering, two live agents, physical devices and production TURN video are
+  outside this integration's evidence.
