@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+  <meta name="theme-color" content="#171229" />
+  <title>Nearby Bonk Club — mjav mjav</title>
+  <link rel="icon" href="/cat.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/nearby.css" />
+</head>
+<body>
+  <header class="topbar"><a class="wordmark" href="/" aria-label="mjav mjav home"><span>mjav</span><span>mjav</span><i aria-hidden="true">✶</i></a><a class="arcade-link" href="/">back to the internet cats</a></header>
+  <main class="nearby arcade">
+    <section class="pairing" aria-labelledby="nearby-title">
+      <img src="/cat.svg" width="72" height="72" alt="" />
+      <h1 id="nearby-title">no internet.<br />still bonking.</h1>
+      <p>Two phones. Same Wi-Fi or phone hotspot. One very local catfight.</p>
+      <p id="offline-ready" role="status">Saving this page for offline play…</p>
+      <details><summary>Before you go offline</summary><p>Open this page on both phones while online. Wait for “Saved for offline play” on each. Keep the tab open or bookmark this page. Then join the same Wi-Fi or one phone’s hotspot; the internet can be off. Keep both game tabs visible while playing.</p></details>
+      <p id="pair-status" role="status">First phone: make a code. Second phone: scan it.</p>
+      <div class="pair-actions">
+        <button type="button" class="arcade-primary" id="make-code">make a code</button>
+        <button type="button" id="scan-code">scan friend’s code</button>
+        <button type="button" id="pair-again" hidden>pair again</button>
+      </div>
+      <section id="qr-panel" hidden aria-labelledby="qr-title">
+        <h2 id="qr-title">Let your friend scan this.</h2>
+        <canvas id="pair-qr" role="img" aria-label="Nearby pairing QR code"></canvas>
+        <p id="qr-hint"></p>
+        <details><summary>Use text instead of the camera</summary><label for="out-code">Your code</label><textarea id="out-code" rows="3" readonly spellcheck="false"></textarea><button type="button" id="copy-code">copy code</button></details>
+      </section>
+      <div id="scanner" hidden>
+        <video id="scan-video" autoplay muted playsinline aria-label="Camera preview for scanning a pairing code"></video>
+        <p>Point the rear camera at the other phone’s QR code.</p><button type="button" id="stop-scan">stop camera</button>
+      </div>
+      <p id="scan-status" role="status"></p>
+      <details id="text-pairing"><summary>Paste a friend’s code</summary><label for="in-code">Friend’s code</label><textarea id="in-code" rows="3" maxlength="2400" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea><button type="button" id="use-code">use this code</button></details>
+      <p class="nearby-note">Only pair with someone you trust. Guest Wi-Fi, client isolation, VPNs, or some hotspots can block direct connections. Try another network if pairing times out. Camera access needs HTTPS and your permission.</p>
+    </section>
+    <section id="nearby-arena" class="game-machine" aria-label="Nearby Bonk Club" hidden>
+      <div class="game-hud"><span id="nearby-seat"></span><span id="round-status" role="status">Waiting for both cats.</span></div>
+      <p class="nearby-rules">Move one tile, diagonals too. Aim a fish or shield. Lock within 8 seconds; both plans reveal together. 3 hearts, 2 shields, 8 turns.</p>
+      <div class="game-viewport">
+        <canvas id="game-canvas" width="420" height="560" aria-label="Bonk Club. Choose a move and aim with the map buttons."></canvas>
+        <div id="bonk-map" class="bonk-map" role="group" aria-label="Bonk Club map. Arrow keys choose a tile; Enter selects it." hidden></div>
+      </div>
+      <div id="bonk-controls" class="bonk-controls" hidden>
+        <div id="bonk-status-row"><p id="bonk-status">Meet the other cat.</p></div>
+        <div class="bonk-tools" role="group" aria-label="Plan your turn"><button id="bonk-move" type="button" aria-pressed="true">1. move</button><button id="bonk-throw" type="button" aria-pressed="false">2. fish</button><button id="bonk-shield" type="button" aria-pressed="true">shield (2)</button></div>
+        <p id="bonk-plan" role="status">Pick a move, then a fish target or shield.</p>
+        <button id="bonk-lock" class="arcade-primary" type="button">lock my plan</button>
+      </div>
+      <ol id="bonk-cats" class="bonk-cats" aria-label="Cats on the map" hidden></ol>
+      <button type="button" id="nearby-play" class="arcade-primary">ready to bonk</button>
+    </section>
+  </main>
+  <script src="/vendor/qrcode.js"></script>
+  <script src="/vendor/jsQR.js"></script>
+  <script type="module" src="/nearby.js"></script>
+</body>
+</html>
