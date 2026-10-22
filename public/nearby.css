@@ -1,0 +1,19 @@
+.nearby { max-inline-size: 1100px; margin-inline: auto; padding: clamp(16px, 3vw, 32px); padding-block-end: calc(32px + env(safe-area-inset-bottom, 0px)); display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: 28px; align-items: start; }
+.nearby h1 { font-size: clamp(36px, 5vw, 60px); line-height: 1; margin-block: 14px; }
+.nearby p { line-height: 1.5; max-inline-size: 60ch; margin-block: 14px; }
+.nearby details { margin-block: 16px; }
+.nearby summary { min-block-size: 44px; padding-block: 10px; cursor: pointer; }
+.nearby button { min-block-size: 48px; padding: 10px 16px; border: 2px solid currentColor; border-radius: 10px; font: inherit; font-weight: 700; cursor: pointer; touch-action: manipulation; user-select: none; }
+.nearby button:active { filter: brightness(0.85); }
+.nearby button:disabled { cursor: default; opacity: .6; }
+.nearby :focus-visible { outline: 3px solid oklch(75% .17 160); outline-offset: 3px; }
+.nearby .pair-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.nearby textarea { display: block; inline-size: 100%; min-inline-size: 0; margin-block: 8px; font-size: 16px; padding: 10px; border: 2px solid; border-radius: 8px; resize: vertical; }
+.nearby #pair-qr { display: block; inline-size: min(100%, 360px); block-size: auto; image-rendering: pixelated; background: white; }
+.nearby #scan-video { inline-size: 100%; max-block-size: 300px; object-fit: cover; border-radius: 10px; background: black; }
+.nearby .nearby-note { font-size: 14px; }
+.nearby #pair-status { font-weight: 700; }
+.nearby .nearby-rules { padding-inline: 12px; }
+.nearby #nearby-play { margin: 12px; }
+/* Preserve the existing map's 44px phone targets; generic pairing buttons are larger. */
+.nearby .bonk-map button { min-block-size: 0; padding: 0; border: 0; }

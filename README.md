@@ -57,6 +57,54 @@ between game snapshots; unchanged score/status labels avoid extra DOM writes.
 The arcade uses no framework, build step, analytics, or runtime requests to third-party services.
 All sounds require interaction; nothing starts playing on page load.
 
+## Nearby Bonk Club (offline)
+
+1. While online, open **Play nearby without internet** in the lobby (or bookmark
+   `/nearby`) on **both** phones. Wait for **Saved for offline play** on each.
+   HTTPS is required. Use current Android Chrome or iPhone Safari (iOS 16.4+).
+2. Join the same Wi-Fi, or have one phone create a hotspot and the other join it.
+   The internet can be off; Wi-Fi must stay on. You can now reload `/nearby` offline.
+3. First phone: **make a code**. Second phone: **scan friend’s code**, allow the
+   rear camera, and scan the first screen. Show the reply QR on the second phone.
+   First phone: **scan friend’s code** again and scan that reply. Pairing normally
+   connects immediately after that second scan; a failed connection times out
+   after 30 seconds. Text copy/paste is also available when the camera is blocked.
+4. Both tap **ready to bonk**. Play the existing simultaneous-turn Bonk Club game:
+   move, aim a fish or shield, then lock. Eight turns or one survivor ends the game.
+   Both tap **ready for a rematch** to play again. Nearby play is silent.
+5. If either phone drops, the game stops and both screens report the disconnect
+   (heartbeat detection takes up to about nine seconds for a silent failure).
+   Tap **pair again** on both and repeat the scans; no page reload is needed.
+
+Keep both game tabs visible and the phones awake. Guest networks with client
+isolation, VPNs, restrictive hotspots, and blocked multicast/mDNS may prevent
+pairing; use another Wi-Fi or hotspot. Offline storage is per browser and origin:
+prepare the same address on both phones before travel. Clearing site data or the
+browser evicting the cache requires another online visit. The back link to the
+online lobby requires internet; stay on `/nearby` while offline.
+
+The first phone runs the existing game core and sends public snapshots over an
+ordered, encrypted WebRTC data channel. The other phone sends only readiness and
+plans. Plans are omitted from snapshots until combat reveals them; the first
+phone owns the simulation, so play with a trusted friend. SDP/ICE is exchanged
+in compressed QR codes, with no STUN/TURN, signalling server, online lobby,
+account, or remote dependency. Camera frames are decoded locally and never
+uploaded; the camera stops after scanning, cancellation, or leaving the page.
+The two QR libraries are bundled with provenance and licenses in `public/vendor`.
+The service worker caches only the nearby page and its assets; online lobby/API
+requests do not use that cache. Bump its cache version when changing these assets.
+
+`bun run check` includes pairing-code validation, stale-answer/cancellation
+handling, channel cleanup, message authority, private plans, and eight-turn/rematch
+unit tests. `bun run test tests/nearby.spec.js` covers real local data channels,
+QR encoding/decoding through synthetic camera frames, offline reloads, no-HTTP
+pairing, complete two-player combat, rematch, disconnect/re-pair, and error recovery
+at desktop and 390px. Chromium's offline emulator disables local ICE too, so the
+suite checks cached reloads with that emulator, then blocks HTTP while exercising
+WebRTC with its LAN transport enabled. These tests do **not** establish the
+30-second result on physical Android/iPhone, real cameras, Wi-Fi or hotspots;
+that device matrix must be checked separately before claiming hardware support.
+
 ## GPT Roulette and ChatGPT MCP app
 
 [Open GPT Roulette](https://mjavmjav.com/roulette): one global matchmaking queue,
